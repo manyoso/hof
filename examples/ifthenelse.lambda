@@ -1,0 +1,1 @@
+\c1 c2 x print -> print (((\a b -> b)(c1))(c2))

@@ -1,0 +1,8 @@
+DEPENDPATH += $$PWD
+INCLUDEPATH += $$PWD
+
+HEADERS += $$PWD/hof.h
+
+SOURCES += $$PWD/hof.cpp
+
+QMAKE_CXXFLAGS +=
