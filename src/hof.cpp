@@ -182,14 +182,13 @@ QString Term::toStringApply(const Term* arg) const
     case s_:
     case p_:
     case r_:
+    case a_:
         return GREEN() + toString() + RED() + arg->toString() + RESET();
     case s1_:
     case k1_:
     case r1_:
     case s2_:
         return CYAN() + toString() + RED() + arg->toString() + RESET();
-    case a_:
-        return BLUE() + toString() + RED() + arg->toString() + RESET();
     default:
         Q_ASSERT(false);
         return QString();
@@ -552,7 +551,7 @@ TermPtr A::apply() const
 {
     Q_ASSERT(isWellFormed());
     SubEval eval;
-    eval.addPrefix(QStringLiteral("A"));
+    eval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
     return left->eval(right);
 }
 
@@ -561,7 +560,12 @@ TermPtr A::apply(TermPtr x) const
     if (left.isNull() || right.isNull())
         return x;
 
-    TermPtr evaluate = apply();
+    TermPtr evaluate;
+    {
+        SubEval eval;
+        eval.addPostfix(x->toString());
+        evaluate = apply();
+    }
     return evaluate->eval(x);
 }
 
@@ -670,14 +674,24 @@ QString cppInterpreter(const QString& string)
 
     if (!evaluationList.isEmpty() && evaluationList.first()->type() == Term::a_) {
         Verbose::instance()->removePostfix(postfixIndex);
-        A* a = static_cast<A*>(evaluationList.first().data());
+        TermPtr evaluate = evaluationList.takeFirst();
+        A* a = static_cast<A*>(evaluate.data());
         if (a->isWellFormed())
             a->apply();
     }
 
-    // Whatever is left in the evaluation list is input
+    if (!evaluationList.isEmpty()) {
+        // Whatever is left in the evaluation list is input
+        Verbose::instance()->generateProgramString("input", true /*replace*/);
+        EvaluationList::const_iterator it = evaluationList.begin();
+        for (; it != evaluationList.end(); ++it) {
+            TermPtr next = *it;
+            qDebug() << next->toString();
+        }
+    }
 
     Verbose::instance()->generateProgramString("end", true /*replace*/);
+
     return static_cast<P*>(p().data())->output();
 }
 
