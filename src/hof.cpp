@@ -404,30 +404,39 @@ private:
 
 TermPtr Term::eval(TermPtr term) const
 {
+    static int evaluationDepth = 0;
+
+    if (evaluationDepth >= 1000) {
+        qDebug() << "Hof program has exceed maximum stack depth!";
+        exit(2);
+    }
+
+    evaluationDepth++;
+
     Verbose::instance()->generateEvalString(this, term.data());
 
     TermPtr r;
     switch(m_type) {
     case i_:
-        return static_cast<const I*>(this)->apply(term);
+        r = static_cast<const I*>(this)->apply(term); break;
     case k_:
-        return static_cast<const K*>(this)->apply(term);
+        r = static_cast<const K*>(this)->apply(term); break;
     case k1_:
-        return static_cast<const K::K1*>(this)->apply(term);
+        r = static_cast<const K::K1*>(this)->apply(term); break;
     case s_:
-        return static_cast<const S*>(this)->apply(term);
+        r = static_cast<const S*>(this)->apply(term); break;
     case s1_:
-        return static_cast<const S::S1*>(this)->apply(term);
+        r = static_cast<const S::S1*>(this)->apply(term); break;
     case s2_:
-        return static_cast<const S::S1::S2*>(this)->apply(term);
+        r = static_cast<const S::S1::S2*>(this)->apply(term); break;
     case p_:
-        return static_cast<const P*>(this)->apply(term);
+        r = static_cast<const P*>(this)->apply(term); break;
     case r_:
-        return static_cast<const R*>(this)->apply(term);
+        r = static_cast<const R*>(this)->apply(term); break;
     case r1_:
-        return static_cast<const R::R1*>(this)->apply(term);
+        r = static_cast<const R::R1*>(this)->apply(term); break;
     case a_:
-        return static_cast<const A*>(this)->apply(term);
+        r = static_cast<const A*>(this)->apply(term); break;
     default:
         {
             Q_ASSERT(false);
@@ -436,7 +445,7 @@ TermPtr Term::eval(TermPtr term) const
         }
     }
 
-    Verbose::instance()->generateReturnString(r.data());
+    evaluationDepth--;
     return r;
 }
 
@@ -659,13 +668,14 @@ QString cppInterpreter(const QString& string)
         evaluationList.append(term);
     }
 
-    Q_ASSERT(evaluationList.size() <= 1);
     if (!evaluationList.isEmpty() && evaluationList.first()->type() == Term::a_) {
         Verbose::instance()->removePostfix(postfixIndex);
         A* a = static_cast<A*>(evaluationList.first().data());
         if (a->isWellFormed())
             a->apply();
     }
+
+    // Whatever is left in the evaluation list is input
 
     Verbose::instance()->generateProgramString("end", true /*replace*/);
     return static_cast<P*>(p().data())->output();
