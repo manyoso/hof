@@ -19,6 +19,24 @@ public:
     Type type() const { return m_type; }
     QString toString() const;
     QString toStringApply(const Term* arg) const;
+    QString typeToString() const
+    {
+        switch (m_type) {
+        case i_: return QStringLiteral("I");
+        case k_: return QStringLiteral("K");
+        case k1_: return QStringLiteral("K1");
+        case s_: return QStringLiteral("S");
+        case s1_: return QStringLiteral("S1");
+        case s2_: return QStringLiteral("S2");
+        case p_: return QStringLiteral("P");
+        case r_: return QStringLiteral("R");
+        case r1_: return QStringLiteral("R1");
+        case a_: return QStringLiteral("A");
+        default:
+            Q_ASSERT(false);
+            return QString();
+        }
+    }
 
 private:
     Type m_type;
@@ -319,6 +337,9 @@ void Verbose::generateReturnString(const Term* r)
     QString ret = r->toString();
     if (ret.isEmpty())
         return;
+
+    QString program = "return type: '" + r->typeToString() + "\'";
+    Verbose::instance()->generateProgramString(program, true /*replace*/);
 
     *m_stream << "  "
         << prefix()
@@ -731,7 +752,6 @@ QString cppInterpreter(const QString& string)
     Q_ASSERT(evaluationList.length() >= 1);
 
     TermPtr evaluate = evaluationList.takeFirst();
-    Verbose::instance()->generateProgramString("return", true /*replace*/);
     Verbose::instance()->generateReturnString(evaluate.data());
     Verbose::instance()->generateInputString(evaluationList);
     Verbose::instance()->generateProgramString("end", true /*replace*/);
