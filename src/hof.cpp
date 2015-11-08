@@ -5,6 +5,7 @@
 
 class Term;
 typedef QSharedPointer<Term> TermPtr;
+typedef QList<TermPtr> EvaluationList;
 
 class Term {
 public:
@@ -252,6 +253,7 @@ public:
     void generateProgramString(const QString& string, bool replace = false);
     void generateEvalString(const Term* term1, const Term* term2);
     void generateReturnString(const Term* r);
+    void generateInputString(const EvaluationList& list);
     void generateReplacementString(const Term* term1, const Term* term2);
 
 private:
@@ -323,6 +325,23 @@ void Verbose::generateReturnString(const Term* r)
         << ret
         << postfix()
         << "\n";
+    print();
+}
+
+void Verbose::generateInputString(const EvaluationList& list)
+{
+    if (list.isEmpty())
+        return;
+
+    // Whatever is left in the evaluation list is input
+    Verbose::instance()->generateProgramString("input", true /*replace*/);
+    EvaluationList::const_iterator it = list.begin();
+    *m_stream << "  ";
+    for (; it != list.end(); ++it) {
+        TermPtr next = *it;
+        *m_stream << next->toString();
+    }
+    *m_stream << "\n";
     print();
 }
 
@@ -539,7 +558,23 @@ bool A::isWellFormed() const
 
 void A::addTerm(TermPtr term)
 {
-    Q_ASSERT(!isFull());
+    Q_ASSERT(!isWellFormed());
+
+    if (!left.isNull() && left->type() == Term::a_) {
+        A* leftA = static_cast<A*>(left.data());
+        if (!leftA->isWellFormed()) {
+            leftA->addTerm(term);
+            return;
+        }
+    }
+
+    if (!right.isNull() && right->type() == Term::a_) {
+        A* rightA = static_cast<A*>(right.data());
+        if (!rightA->isWellFormed()) {
+            rightA->addTerm(term);
+            return;
+        }
+    }
 
     if (left.isNull())
         left = term;
@@ -601,7 +636,6 @@ TermPtr R::R1::apply(TermPtr y) const
     return Random::instance()->boolean() ? x : y;
 }
 
-typedef QList<TermPtr> EvaluationList;
 bool evaluationListIsWellFormed(const EvaluationList& list)
 {
     EvaluationList::const_iterator it = list.begin();
@@ -617,6 +651,11 @@ QString cppInterpreter(const QString& string)
     Verbose::instance()->generateProgramString("program: " + string);
     Verbose::instance()->generateProgramString("begin", true /*replace*/);
     int postfixIndex = Verbose::instance()->addPostfix(string);
+
+    if (string.isEmpty()) {
+        Verbose::instance()->generateProgramString("end", true /*replace*/);
+        return QString();
+    }
 
     EvaluationList evaluationList;
     for (int x = 0; x < string.length(); x++) {
@@ -635,13 +674,28 @@ QString cppInterpreter(const QString& string)
             return QString();
         }
 
-        if (!evaluationList.isEmpty() && term->type() != Term::a_) {
+        if (evaluationList.isEmpty()) {
+            evaluationList.append(term);
+            continue;
+        }
+
+        if (!evaluationList.isEmpty()) {
+            if (term->type() == Term::a_) {
+                if (evaluationList.back()->type() == Term::a_) {
+                    A* a = static_cast<A*>(evaluationList.back().data());
+                    Q_ASSERT(!a->isWellFormed());
+                    a->addTerm(term);
+                } else {
+                    evaluationList.append(term);
+                }
+
+                continue; // can't possibly be well formed at this point
+            }
+
             if (evaluationList.back()->type() == Term::a_) {
                 A* a = static_cast<A*>(evaluationList.back().data());
-                if (!a->isFull())
-                    a->addTerm(term);
-                if (!a->isFull())
-                    continue;
+                Q_ASSERT(!a->isWellFormed());
+                a->addTerm(term);
                 term = TermPtr(); // remove the term since it was added
             }
 
@@ -651,45 +705,35 @@ QString cppInterpreter(const QString& string)
             Verbose::instance()->removePostfix(postfixIndex);
             postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
 
-            SubEval eval;
-            eval.addPostfix(!term.isNull() ? term->toString() : QString());
+            SubEval subEval;
+            subEval.addPostfix(!term.isNull() ? term->toString() : QString());
 
             TermPtr evaluate = evaluationList.takeFirst();
             EvaluationList::const_iterator it = evaluationList.begin();
-            for (; it != evaluationList.end(); ++it) {
-                TermPtr next = *it;
-                evaluate = evaluate->eval(next);
-            }
+            for (; it != evaluationList.end(); ++it)
+                evaluate = evaluate->eval(*it);
 
-            eval.clear();
+            subEval.clear();
 
             if (!term.isNull())
                 evaluate = evaluate->eval(term);
-            evaluationList.clear();
-            term = evaluate;
-        }
 
-        evaluationList.append(term);
-    }
+            while (evaluate->type() == Term::a_) {
+                A* a = static_cast<A*>(evaluate.data());
+                if (!a->isWellFormed()) { break; }
+                evaluate = a->apply();
+            }
 
-    if (!evaluationList.isEmpty() && evaluationList.first()->type() == Term::a_) {
-        Verbose::instance()->removePostfix(postfixIndex);
-        TermPtr evaluate = evaluationList.takeFirst();
-        A* a = static_cast<A*>(evaluate.data());
-        if (a->isWellFormed())
-            a->apply();
-    }
-
-    if (!evaluationList.isEmpty()) {
-        // Whatever is left in the evaluation list is input
-        Verbose::instance()->generateProgramString("input", true /*replace*/);
-        EvaluationList::const_iterator it = evaluationList.begin();
-        for (; it != evaluationList.end(); ++it) {
-            TermPtr next = *it;
-            qDebug() << next->toString();
+            evaluationList = EvaluationList() << evaluate;
         }
     }
 
+    Q_ASSERT(evaluationList.length() >= 1);
+
+    TermPtr evaluate = evaluationList.takeFirst();
+    Verbose::instance()->generateProgramString("return", true /*replace*/);
+    Verbose::instance()->generateReturnString(evaluate.data());
+    Verbose::instance()->generateInputString(evaluationList);
     Verbose::instance()->generateProgramString("end", true /*replace*/);
 
     return static_cast<P*>(p().data())->output();

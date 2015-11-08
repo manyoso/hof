@@ -35,16 +35,19 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
 #define PRINT(X) "P" X
 #define RANDOM(X, Y) "R" X Y
 #define TRUE "K"
-#define FALSE "SK"
+#define FALSE "KI"
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
 #define AND(X, Y) X Y "A" FALSE
 #define OR(X, Y) X TRUE Y
+#define RECURSE(X) S "A" K X "AA" S I I "AA" S "A" K X "AA" S I I
 
 void TestHof::testHof()
 {
     bool ok = false;
     QString out;
+
+//    out = runHof(RECURSE(I), &ok, true);
 
     // print
     out = runHof(PRINT(I), &ok);
@@ -123,6 +126,9 @@ void TestHof::testHofNoise()
             randomHofProgram.append(ch);
         }
         bool ok = false;
+#if 0
+        qDebug() << randomHofProgram;
+#endif
         runHof(randomHofProgram, &ok, false /*verbose*/);
         QVERIFY(ok);
     }
