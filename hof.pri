@@ -11,7 +11,7 @@ equals(QT_MAJOR_VERSION, 5) {
 OUTPUT_DIR = $$(OUTPUT_DIR)
 isEmpty(OUTPUT_DIR):OUTPUT_DIR=$$PWD/build
 
-QT += core script
+QT += core
 QT -= gui
 
 CONFIG += qt warn_on

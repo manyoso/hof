@@ -4,7 +4,7 @@ Hof is a new language based on the SKI calculus named after Douglas Hofstadter.
 
     Syntax:       Semantics:    Meaning:
     T -> I        ^x.x          I combinator from SKI calculus
-    T -> K        ^x.y.x        K combinator from SKI calculus
+    T -> K        ^xy.x         K combinator from SKI calculus
     T -> S        ^xyz.xz(yz)   S combinator from SKI calculus
     T -> V        ^v.^x.x       Void combinator ignores v and returns I
     T -> P        ^x.x          Print x to stdout
