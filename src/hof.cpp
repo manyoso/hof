@@ -9,7 +9,7 @@ typedef QList<TermPtr> EvaluationList;
 
 class Term {
 public:
-    enum Type { i_, k_, k1_, s_, s1_, s2_, p_, r_, r1_, a_};
+    enum Type { i_, k_, k1_, s_, s1_, s2_, v_, p_, r_, r1_, a_};
 
     Term() : m_type(Type(-1)) { }
     Term(Type t) : m_type(t) { }
@@ -28,6 +28,7 @@ public:
         case s_: return QStringLiteral("S");
         case s1_: return QStringLiteral("S1");
         case s2_: return QStringLiteral("S2");
+        case v_: return QStringLiteral("V");
         case p_: return QStringLiteral("P");
         case r_: return QStringLiteral("R");
         case r1_: return QStringLiteral("R1");
@@ -70,6 +71,11 @@ struct S : Term {
         TermPtr x;
         TermPtr apply(TermPtr y) const;
     };
+    TermPtr apply(TermPtr x) const;
+};
+
+struct V : Term {
+    V() : Term(Term::v_) { }
     TermPtr apply(TermPtr x) const;
 };
 
@@ -129,6 +135,14 @@ static TermPtr s()
     return s_instance;
 }
 
+static TermPtr v()
+{
+    static TermPtr s_instance;
+    if (!s_instance)
+        s_instance = TermPtr(new V);
+    return s_instance;
+}
+
 static TermPtr p()
 {
     static TermPtr s_instance;
@@ -167,6 +181,8 @@ QString Term::toString() const
           const S::S1::S2* s2 = static_cast<const S::S1::S2*>(this);
           return QString("S%1%2").arg(s2->x->toString()).arg(s2->y->toString());
       }
+    case v_:
+        return QStringLiteral("V");
     case p_:
         return QStringLiteral("P");
     case r_:
@@ -199,6 +215,7 @@ QString Term::toStringApply(const Term* arg) const
     case i_:
     case k_:
     case s_:
+    case v_:
     case p_:
     case r_:
     case a_:
@@ -468,6 +485,8 @@ TermPtr Term::eval(TermPtr term) const
         r = static_cast<const S::S1*>(this)->apply(term); break;
     case s2_:
         r = static_cast<const S::S1::S2*>(this)->apply(term); break;
+    case v_:
+        r = static_cast<const V*>(this)->apply(term); break;
     case p_:
         r = static_cast<const P*>(this)->apply(term); break;
     case r_:
@@ -549,6 +568,11 @@ TermPtr S::S1::S2::apply(TermPtr z) const
     return (first->eval(second));
 }
 
+TermPtr V::apply(TermPtr /*x*/) const
+{
+    return i();
+}
+
 TermPtr P::apply(TermPtr x) const
 {
     m_output += x->toString();
@@ -560,6 +584,38 @@ TermPtr R::apply(TermPtr x) const
     TermPtr r1(new R1);
     r1.staticCast<R1>()->x = x;
     return r1;
+}
+
+class Random {
+public:
+    static Random* instance()
+    {
+        static Random* s_instance = 0;
+        if (!s_instance)
+            s_instance = new Random;
+        return s_instance;
+    }
+
+    bool boolean() const
+    {
+        return (*m_dist)(*m_gen);
+    }
+
+private:
+    Random()
+    {
+        std::random_device rd;
+        m_gen = new std::mt19937(rd());
+        m_dist = new std::bernoulli_distribution;
+    }
+
+    std::mt19937* m_gen;
+    std::bernoulli_distribution* m_dist;
+};
+
+TermPtr R::R1::apply(TermPtr y) const
+{
+    return Random::instance()->boolean() ? x : y;
 }
 
 bool A::isFull() const
@@ -625,38 +681,6 @@ TermPtr A::apply(TermPtr x) const
     return evaluate->eval(x);
 }
 
-class Random {
-public:
-    static Random* instance()
-    {
-        static Random* s_instance = 0;
-        if (!s_instance)
-            s_instance = new Random;
-        return s_instance;
-    }
-
-    bool boolean() const
-    {
-        return (*m_dist)(*m_gen);
-    }
-
-private:
-    Random()
-    {
-        std::random_device rd;
-        m_gen = new std::mt19937(rd());
-        m_dist = new std::bernoulli_distribution;
-    }
-
-    std::mt19937* m_gen;
-    std::bernoulli_distribution* m_dist;
-};
-
-TermPtr R::R1::apply(TermPtr y) const
-{
-    return Random::instance()->boolean() ? x : y;
-}
-
 bool evaluationListIsWellFormed(const EvaluationList& list)
 {
     EvaluationList::const_iterator it = list.begin();
@@ -686,6 +710,7 @@ QString cppInterpreter(const QString& string)
         case 'I': term = i(); break;
         case 'K': term = k(); break;
         case 'S': term = s(); break;
+        case 'V': term = v(); break;
         case 'P': term = p(); break;
         case 'R': term = r(); break;
         case 'A': term = TermPtr(new A); break;

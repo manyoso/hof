@@ -35,10 +35,10 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
 #define PRINT(X) "P" X
 #define RANDOM(X, Y) "R" X Y
 #define TRUE "K"
-#define FALSE "KI"
+#define FALSE "V"
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
-#define AND(X, Y) X Y "A" FALSE
+#define AND(X, Y) X Y FALSE
 #define OR(X, Y) X TRUE Y
 #define ZERO FALSE
 #define ONE I
@@ -86,12 +86,12 @@ void TestHof::testHof()
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(AND(TRUE, APPLY(FALSE)), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(AND(TRUE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
 
     // if-or-then-else
-    out = runHof(IF(OR(TRUE, APPLY(FALSE)), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(OR(TRUE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
@@ -99,7 +99,7 @@ void TestHof::testHof()
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(OR(FALSE, APPLY(FALSE)), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(OR(FALSE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
 
@@ -131,7 +131,7 @@ void TestHof::testHofNoise()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> distLength(0, 100);
-    std::uniform_int_distribution<int> distLetter(0, 5);
+    std::uniform_int_distribution<int> distLetter(0, 6);
 
     for (int i = 0; i < 100; ++i) {
         int length = distLength(gen);
@@ -141,11 +141,12 @@ void TestHof::testHofNoise()
             QChar ch;
             switch (letter) {
             case 0: ch = 'I'; break;
-            case 1: ch = 'S'; break;
-            case 2: ch = 'K'; break;
-            case 3: ch = 'A'; break;
-            case 4: ch = 'P'; break;
-            case 5: ch = 'R'; break;
+            case 1: ch = 'K'; break;
+            case 2: ch = 'S'; break;
+            case 3: ch = 'V'; break;
+            case 4: ch = 'A'; break;
+            case 5: ch = 'P'; break;
+            case 6: ch = 'R'; break;
             default:
               Q_ASSERT(false);
             }
