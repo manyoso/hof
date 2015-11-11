@@ -17,7 +17,7 @@ public:
     TermPtr apply(TermPtr term) const;
     Type type() const { return m_type; }
     QString toString() const;
-    QString toStringApply(const Term* arg) const;
+    QString toStringApply(TermPtr arg) const;
     QString typeToString() const
     {
         switch (m_type) {
@@ -208,7 +208,7 @@ QString GREEN() { return "\033[92m"; }
 QString RED() { return "\033[91m"; }
 QString RESET() { return "\033[0m"; }
 
-QString Term::toStringApply(const Term* arg) const
+QString Term::toStringApply(TermPtr arg) const
 {
     switch(m_type) {
     case i_:
@@ -286,10 +286,10 @@ public:
     }
 
     void generateProgramString(const QString& string, bool replace = false);
-    void generateEvalString(const Term* term1, const Term* term2);
-    void generateReturnString(const Term* r);
+    void generateEvalString(TermPtr term1, TermPtr term2);
+    void generateReturnString(TermPtr r);
     void generateInputString(const EvaluationList& list);
-    void generateReplacementString(const Term* term1, const Term* term2);
+    void generateReplacementString(TermPtr term1, TermPtr term2);
 
 private:
     Verbose()
@@ -328,7 +328,7 @@ QString Verbose::postfix() const
     return m_postfix.join("");
 }
 
-void Verbose::generateEvalString(const Term* term1, const Term* term2)
+void Verbose::generateEvalString(TermPtr term1, TermPtr term2)
 {
     if (!m_verbose)
         return;
@@ -346,7 +346,7 @@ void Verbose::generateEvalString(const Term* term1, const Term* term2)
     print();
 }
 
-void Verbose::generateReturnString(const Term* r)
+void Verbose::generateReturnString(TermPtr r)
 {
     if (!m_verbose)
         return;
@@ -383,7 +383,7 @@ void Verbose::generateInputString(const EvaluationList& list)
     print();
 }
 
-void Verbose::generateReplacementString(const Term* term1, const Term* term2)
+void Verbose::generateReplacementString(TermPtr term1, TermPtr term2)
 {
     if (!m_verbose)
       return;
@@ -458,7 +458,7 @@ private:
     mutable int m_postfixNumber;
 };
 
-TermPtr eval(TermPtr left, TermPtr right, bool thunk = false)
+TermPtr eval(TermPtr left, TermPtr right)
 {
     static int evaluationDepth = 0;
 
@@ -469,7 +469,7 @@ TermPtr eval(TermPtr left, TermPtr right, bool thunk = false)
 
     evaluationDepth++;
 
-    Verbose::instance()->generateEvalString(left.data(), right.data());
+    Verbose::instance()->generateEvalString(left, right);
 
     TermPtr r;
     switch(left->type()) {
@@ -537,7 +537,7 @@ TermPtr S::S1::apply(TermPtr y) const
         TermPtr s2(new S2);
         s2.staticCast<S2>()->x = x;
         s2.staticCast<S2>()->y = y;
-        Verbose::instance()->generateReplacementString(s2.data(), i().data());
+        Verbose::instance()->generateReplacementString(s2, i());
         return i();
     }
 
@@ -777,7 +777,7 @@ QString cppInterpreter(const QString& string)
     Q_ASSERT(evaluationList.length() >= 1);
 
     TermPtr evaluate = evaluationList.takeFirst();
-    Verbose::instance()->generateReturnString(evaluate.data());
+    Verbose::instance()->generateReturnString(evaluate);
     Verbose::instance()->generateInputString(evaluationList);
     Verbose::instance()->generateProgramString("end", true /*replace*/);
 
