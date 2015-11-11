@@ -328,7 +328,7 @@ QString Verbose::postfix() const
     return m_postfix.join("");
 }
 
-void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int /*evaluationDepth*/)
+void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth)
 {
     if (!m_verbose)
         return;
@@ -337,10 +337,15 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
     if (apply.isEmpty())
         return;
 
+    Q_UNUSED(evaluationDepth);
+
     *m_stream << "  "
         << prefix()
         << apply
         << postfix()
+#if 0
+        << "  " << evaluationDepth
+#endif
         << "\n";
 
     print();
