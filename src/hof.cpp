@@ -14,10 +14,10 @@ public:
     Term() : m_type(Type(-1)) { }
     Term(Type t) : m_type(t) { }
     virtual ~Term() { }
-    TermPtr apply(TermPtr term) const;
+    TermPtr apply(const TermPtr& term) const;
     Type type() const { return m_type; }
     QString toString() const;
-    QString toStringApply(TermPtr arg) const;
+    QString toStringApply(const TermPtr& arg) const;
     QString typeToString() const
     {
         switch (m_type) {
@@ -44,17 +44,17 @@ private:
 
 struct I : Term {
     I() : Term(Term::i_) { }
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 };
 
 struct K : Term {
     K() : Term(Term::k_) { }
     struct K1 : Term {
         K1() : Term(Term::k1_) { }
-        TermPtr apply(TermPtr /*y*/) const;
+        TermPtr apply(const TermPtr& /*y*/) const;
         TermPtr x;
     };
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 };
 
 struct S : Term {
@@ -63,25 +63,25 @@ struct S : Term {
         S1() : Term(Term::s1_) { }
         struct S2 : Term {
             S2() : Term(Term::s2_) { }
-            TermPtr apply(TermPtr z) const;
+            TermPtr apply(const TermPtr& z) const;
             TermPtr x;
             TermPtr y;
         };
         TermPtr x;
-        TermPtr apply(TermPtr y) const;
+        TermPtr apply(const TermPtr& y) const;
     };
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 };
 
 struct V : Term {
     V() : Term(Term::v_) { }
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 };
 
 class P : public Term {
 public:
     P() : Term(Term::p_) { }
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
     QString output() const { return m_output; }
 
 private:
@@ -92,20 +92,20 @@ struct R : Term {
     R() : Term(Term::r_) { }
     struct R1 : Term {
         R1() : Term(Term::r1_) { }
-        TermPtr apply(TermPtr y) const;
+        TermPtr apply(const TermPtr& y) const;
         TermPtr x;
     };
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 };
 
 struct A : Term {
     A() : Term(Term::a_) { }
     TermPtr apply() const;
-    TermPtr apply(TermPtr x) const;
+    TermPtr apply(const TermPtr& x) const;
 
     bool isFull() const;
     bool isWellFormed() const;
-    void addTerm(TermPtr);
+    void addTerm(const TermPtr&);
     TermPtr left;
     TermPtr right;
 };
@@ -208,7 +208,7 @@ QString GREEN() { return "\033[92m"; }
 QString RED() { return "\033[91m"; }
 QString RESET() { return "\033[0m"; }
 
-QString Term::toStringApply(TermPtr arg) const
+QString Term::toStringApply(const TermPtr& arg) const
 {
     switch(m_type) {
     case i_:
@@ -286,10 +286,10 @@ public:
     }
 
     void generateProgramString(const QString& string, bool replace = false);
-    void generateEvalString(TermPtr term1, TermPtr term2);
-    void generateReturnString(TermPtr r);
+    void generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth);
+    void generateReturnString(const TermPtr& r);
     void generateInputString(const EvaluationList& list);
-    void generateReplacementString(TermPtr term1, TermPtr term2);
+    void generateReplacementString(const TermPtr& term1, const TermPtr& term2);
 
 private:
     Verbose()
@@ -328,7 +328,7 @@ QString Verbose::postfix() const
     return m_postfix.join("");
 }
 
-void Verbose::generateEvalString(TermPtr term1, TermPtr term2)
+void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int /*evaluationDepth*/)
 {
     if (!m_verbose)
         return;
@@ -346,7 +346,7 @@ void Verbose::generateEvalString(TermPtr term1, TermPtr term2)
     print();
 }
 
-void Verbose::generateReturnString(TermPtr r)
+void Verbose::generateReturnString(const TermPtr& r)
 {
     if (!m_verbose)
         return;
@@ -383,7 +383,7 @@ void Verbose::generateInputString(const EvaluationList& list)
     print();
 }
 
-void Verbose::generateReplacementString(TermPtr term1, TermPtr term2)
+void Verbose::generateReplacementString(const TermPtr& term1, const TermPtr& term2)
 {
     if (!m_verbose)
       return;
@@ -458,7 +458,7 @@ private:
     mutable int m_postfixNumber;
 };
 
-TermPtr eval(TermPtr left, TermPtr right)
+TermPtr eval(const TermPtr& left, const TermPtr& right)
 {
     static int evaluationDepth = 0;
 
@@ -469,7 +469,7 @@ TermPtr eval(TermPtr left, TermPtr right)
 
     evaluationDepth++;
 
-    Verbose::instance()->generateEvalString(left, right);
+    Verbose::instance()->generateEvalString(left, right, evaluationDepth);
 
     TermPtr r;
     switch(left->type()) {
@@ -507,31 +507,31 @@ TermPtr eval(TermPtr left, TermPtr right)
     return r;
 }
 
-TermPtr I::apply(TermPtr x) const
+TermPtr I::apply(const TermPtr& x) const
 {
     return x;
 }
 
-TermPtr K::apply(TermPtr x) const
+TermPtr K::apply(const TermPtr& x) const
 {
     TermPtr k1(new K1);
     k1.staticCast<K1>()->x = x;
     return k1;
 }
 
-TermPtr K::K1::apply(TermPtr /*y*/) const
+TermPtr K::K1::apply(const TermPtr& /*y*/) const
 {
     return x;
 }
 
-TermPtr S::apply(TermPtr x) const
+TermPtr S::apply(const TermPtr& x) const
 {
     TermPtr s1(new S1);
     s1.staticCast<S1>()->x = x;
     return s1;
 }
 
-TermPtr S::S1::apply(TermPtr y) const
+TermPtr S::S1::apply(const TermPtr& y) const
 {
     if (x->type() == Term::k_) {
         TermPtr s2(new S2);
@@ -547,7 +547,7 @@ TermPtr S::S1::apply(TermPtr y) const
     return s2;
 }
 
-TermPtr S::S1::S2::apply(TermPtr z) const
+TermPtr S::S1::S2::apply(const TermPtr& z) const
 {
     TermPtr first;
     TermPtr second;
@@ -568,18 +568,18 @@ TermPtr S::S1::S2::apply(TermPtr z) const
     return (eval(first, second));
 }
 
-TermPtr V::apply(TermPtr /*x*/) const
+TermPtr V::apply(const TermPtr& /*x*/) const
 {
     return i();
 }
 
-TermPtr P::apply(TermPtr x) const
+TermPtr P::apply(const TermPtr& x) const
 {
     m_output += x->toString();
     return x;
 }
 
-TermPtr R::apply(TermPtr x) const
+TermPtr R::apply(const TermPtr& x) const
 {
     TermPtr r1(new R1);
     r1.staticCast<R1>()->x = x;
@@ -613,7 +613,7 @@ private:
     std::bernoulli_distribution* m_dist;
 };
 
-TermPtr R::R1::apply(TermPtr y) const
+TermPtr R::R1::apply(const TermPtr& y) const
 {
     return Random::instance()->boolean() ? x : y;
 }
@@ -633,7 +633,7 @@ bool A::isWellFormed() const
     return leftIsWellFormed && rightIsWellFormed;
 }
 
-void A::addTerm(TermPtr term)
+void A::addTerm(const TermPtr& term)
 {
     Q_ASSERT(!isWellFormed());
 
@@ -667,7 +667,7 @@ TermPtr A::apply() const
     return eval(left, right);
 }
 
-TermPtr A::apply(TermPtr x) const
+TermPtr A::apply(const TermPtr& x) const
 {
     if (left.isNull() || right.isNull())
         return x;
