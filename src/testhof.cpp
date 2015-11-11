@@ -48,15 +48,20 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
 #define BETA_RECURSE(X) S "A" K X "AA" S I I "AA" S "A" K X "AA" S I I
 
 // standard y combinator
-#define YCOMBINATOR = S "A" K "AA" S I I "A" S "A" S "A" K S K "A" K "AA" S I I
+#define YCOMBINATOR(X) S "A" K "AA" S I I "AA" S "AA" S "A" K S K "A" K "AA" S I I X
+// S (K (S I I)) (S (S (K S) K) (K (S I I)))
 
 // tromp's y combinator
-#define YCOMBINATOR_1 = S S K "A" S "A" K "AA" S S "A" S "AA" S S K K
+#define YCOMBINATOR_1(X) S S K "A" S "A" K "AA" S S "A" S "AA" S S K K X
+
+#define WHILE(COND, OPERATION, INITIAL) ""
 
 void TestHof::testHof()
 {
     bool ok = false;
     QString out;
+
+    //out = runHof(YCOMBINATOR("API"), &ok, true);
 
     // print
     out = runHof(PRINT(I), &ok);

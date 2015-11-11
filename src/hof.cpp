@@ -15,7 +15,6 @@ public:
     Term(Type t) : m_type(t) { }
     virtual ~Term() { }
     TermPtr apply(TermPtr term) const;
-    TermPtr eval(TermPtr term) const;
     Type type() const { return m_type; }
     QString toString() const;
     QString toStringApply(const Term* arg) const;
@@ -223,8 +222,9 @@ QString Term::toStringApply(const Term* arg) const
     case s1_:
     case k1_:
     case r1_:
+        return CYAN() + toString() + "₁" + RED() + arg->toString() + RESET();
     case s2_:
-        return CYAN() + toString() + RED() + arg->toString() + RESET();
+        return CYAN() + toString() + "₂" + RED() + arg->toString() + RESET();
     default:
         Q_ASSERT(false);
         return QString();
@@ -458,7 +458,7 @@ private:
     mutable int m_postfixNumber;
 };
 
-TermPtr Term::eval(TermPtr term) const
+TermPtr eval(TermPtr left, TermPtr right, bool thunk = false)
 {
     static int evaluationDepth = 0;
 
@@ -469,32 +469,32 @@ TermPtr Term::eval(TermPtr term) const
 
     evaluationDepth++;
 
-    Verbose::instance()->generateEvalString(this, term.data());
+    Verbose::instance()->generateEvalString(left.data(), right.data());
 
     TermPtr r;
-    switch(m_type) {
-    case i_:
-        r = static_cast<const I*>(this)->apply(term); break;
-    case k_:
-        r = static_cast<const K*>(this)->apply(term); break;
-    case k1_:
-        r = static_cast<const K::K1*>(this)->apply(term); break;
-    case s_:
-        r = static_cast<const S*>(this)->apply(term); break;
-    case s1_:
-        r = static_cast<const S::S1*>(this)->apply(term); break;
-    case s2_:
-        r = static_cast<const S::S1::S2*>(this)->apply(term); break;
-    case v_:
-        r = static_cast<const V*>(this)->apply(term); break;
-    case p_:
-        r = static_cast<const P*>(this)->apply(term); break;
-    case r_:
-        r = static_cast<const R*>(this)->apply(term); break;
-    case r1_:
-        r = static_cast<const R::R1*>(this)->apply(term); break;
-    case a_:
-        r = static_cast<const A*>(this)->apply(term); break;
+    switch(left->type()) {
+    case Term::i_:
+        r = static_cast<const I*>(left.data())->apply(right); break;
+    case Term::k_:
+        r = static_cast<const K*>(left.data())->apply(right); break;
+    case Term::k1_:
+        r = static_cast<const K::K1*>(left.data())->apply(right); break;
+    case Term::s_:
+        r = static_cast<const S*>(left.data())->apply(right); break;
+    case Term::s1_:
+        r = static_cast<const S::S1*>(left.data())->apply(right); break;
+    case Term::s2_:
+        r = static_cast<const S::S1::S2*>(left.data())->apply(right); break;
+    case Term::v_:
+        r = static_cast<const V*>(left.data())->apply(right); break;
+    case Term::p_:
+        r = static_cast<const P*>(left.data())->apply(right); break;
+    case Term::r_:
+        r = static_cast<const R*>(left.data())->apply(right); break;
+    case Term::r1_:
+        r = static_cast<const R::R1*>(left.data())->apply(right); break;
+    case Term::a_:
+        r = static_cast<const A*>(left.data())->apply(right); break;
     default:
         {
             Q_ASSERT(false);
@@ -552,20 +552,20 @@ TermPtr S::S1::S2::apply(TermPtr z) const
     TermPtr first;
     TermPtr second;
     if (Verbose::instance()->isVerbose()) {
-        SubEval eval;
-        eval.addPostfix("A" + y->toString() + z->toString());
-        first = x->eval(z);
+        SubEval subEval;
+        subEval.addPostfix(y->toString() + z->toString());
+        first = eval(x, z);
     } else
-        first = x->eval(z);
+        first = eval(x, z);
 
     if (Verbose::instance()->isVerbose()) {
-        SubEval eval;
-        eval.addPrefix(first->toString() + BLUE() + "A" + RESET());
-        second = y->eval(z);
+        SubEval subEval;
+        subEval.addPrefix(first->toString());
+        second = eval(y, z);
     } else
-        second = y->eval(z);
+        second = eval(y, z);
 
-    return (first->eval(second));
+    return (eval(first, second));
 }
 
 TermPtr V::apply(TermPtr /*x*/) const
@@ -662,9 +662,9 @@ void A::addTerm(TermPtr term)
 TermPtr A::apply() const
 {
     Q_ASSERT(isWellFormed());
-    SubEval eval;
-    eval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
-    return left->eval(right);
+    SubEval subEval;
+    subEval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
+    return eval(left, right);
 }
 
 TermPtr A::apply(TermPtr x) const
@@ -674,11 +674,11 @@ TermPtr A::apply(TermPtr x) const
 
     TermPtr evaluate;
     {
-        SubEval eval;
-        eval.addPostfix(x->toString());
+        SubEval subEval;
+        subEval.addPostfix(x->toString());
         evaluate = apply();
     }
-    return evaluate->eval(x);
+    return eval(evaluate, x);
 }
 
 bool evaluationListIsWellFormed(const EvaluationList& list)
@@ -757,12 +757,12 @@ QString cppInterpreter(const QString& string)
             TermPtr evaluate = evaluationList.takeFirst();
             EvaluationList::const_iterator it = evaluationList.begin();
             for (; it != evaluationList.end(); ++it)
-                evaluate = evaluate->eval(*it);
+                evaluate = eval(evaluate, *it);
 
             subEval.clear();
 
             if (!term.isNull())
-                evaluate = evaluate->eval(term);
+                evaluate = eval(evaluate, term);
 
             while (evaluate->type() == Term::a_) {
                 A* a = static_cast<A*>(evaluate.data());
