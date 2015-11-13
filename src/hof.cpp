@@ -9,6 +9,11 @@ class Term;
 typedef QSharedPointer<Term> TermPtr;
 typedef QList<TermPtr> EvaluationList;
 
+enum Format {
+  None,
+  Bash
+};
+
 class Term {
 public:
     enum Type { i_, k_, k1_, s_, s1_, s2_, v_, p_, r_, r1_, a_};
@@ -19,7 +24,7 @@ public:
     TermPtr apply(const TermPtr& term) const;
     Type type() const { return m_type; }
     QString toString() const;
-    QString toStringApply(const TermPtr& arg) const;
+    QString toStringApply(const TermPtr& arg, Format f = None) const;
     QString typeToString() const
     {
         switch (m_type) {
@@ -203,15 +208,56 @@ QString Term::toString() const
     }
 }
 
-QString CYAN() { return "\033[96m"; }
-QString PURPLE() { return "\033[95m"; }
-QString BLUE() { return "\033[94m"; }
-QString YELLOW() { return "\033[93m"; }
-QString GREEN() { return "\033[92m"; }
-QString RED() { return "\033[91m"; }
-QString RESET() { return "\033[0m"; }
+QString CYAN(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[96m";
+}
 
-QString Term::toStringApply(const TermPtr& arg) const
+QString PURPLE(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[95m";
+}
+
+QString BLUE(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[94m";
+}
+
+QString YELLOW(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[93m";
+}
+
+QString GREEN(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[92m";
+}
+
+QString RED(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[91m";
+}
+
+QString RESET(Format f = Format::Bash)
+{
+    if (f == Format::None)
+        return QString();
+    return "\033[0m";
+}
+
+QString Term::toStringApply(const TermPtr& arg, Format f) const
 {
     switch(m_type) {
     case i_:
@@ -221,20 +267,20 @@ QString Term::toStringApply(const TermPtr& arg) const
     case p_:
     case r_:
     case a_:
-        return GREEN() + toString() + RED() + arg->toString() + RESET();
+        return GREEN(f) + toString() + RED(f) + arg->toString() + RESET(f);
     case s1_:
     case k1_:
     case r1_:
       {
           QString s = toString();
           s.insert(1, "₁");
-          return CYAN() + s + RED() + arg->toString() + RESET();
+          return CYAN(f) + s + RED(f) + arg->toString() + RESET(f);
       }
     case s2_:
       {
           QString s = toString();
           s.insert(1, "₂");
-          return CYAN() + s + RED() + arg->toString() + RESET();
+          return CYAN(f) + s + RED(f) + arg->toString() + RESET(f);
       }
     default:
         Q_ASSERT(false);
@@ -306,12 +352,14 @@ private:
     Verbose()
     {
         m_stream = 0;
+        m_format = Format::Bash;
     }
 
     QString m_program;
     QStringList m_prefix;
     QStringList m_postfix;
     QTextStream* m_stream;
+    Format m_format;
 };
 
 void Verbose::generateProgramString(const QString& string, bool replace)
@@ -322,7 +370,7 @@ void Verbose::generateProgramString(const QString& string, bool replace)
         m_program = string;
     else
         m_program += string;
-    *m_stream << PURPLE() << m_program << "\n" << RESET();
+    *m_stream << PURPLE(m_format) << m_program << "\n" << RESET(m_format);
     print();
 }
 
@@ -330,7 +378,7 @@ void Verbose::generateOutputString()
 {
     if (!isVerbose())
         return;
-    *m_stream << PURPLE() << "output: ";
+    *m_stream << PURPLE(m_format) << "output: ";
     print();
 }
 
@@ -338,7 +386,7 @@ void Verbose::generateOutputStringEnd()
 {
     if (!isVerbose())
         return;
-    *m_stream << "\n" << RESET();
+    *m_stream << "\n" << RESET(m_format);
     print();
 }
 
@@ -357,7 +405,7 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
     if (!isVerbose())
         return;
 
-    QString apply = term1->toStringApply(term2);
+    QString apply = term1->toStringApply(term2, m_format);
     if (apply.isEmpty())
         return;
 
