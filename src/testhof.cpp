@@ -160,7 +160,8 @@ void TestHof::testY()
     bool expectTimeout = true;
 
     out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, expectTimeout);
-    QVERIFY(out.count('I') > 100);
+    qDebug() << "iterations" << out.count('I');
+    QVERIFY(out.count('I') > 2000); // crude benchmark in debug mode
     out.replace("I", "");
     QCOMPARE(out, QString());
     QVERIFY(ok);
