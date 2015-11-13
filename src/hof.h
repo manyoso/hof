@@ -5,13 +5,10 @@
 
 class Hof {
 public:
-    Hof(bool verbose);
+    Hof(QTextStream* outputStream, QTextStream* verboseStream = 0);
     ~Hof();
 
-    QString run(const QString& string);
-
-private:
-    bool m_verbose;
+    void run(const QString& string);
 };
 
 #endif // hof_h

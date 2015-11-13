@@ -3,6 +3,8 @@
 #include <QtCore>
 #include <random>
 
+#define LAZY_EVALUATION 1
+
 class Term;
 typedef QSharedPointer<Term> TermPtr;
 typedef QList<TermPtr> EvaluationList;
@@ -80,12 +82,11 @@ struct V : Term {
 
 class P : public Term {
 public:
-    P() : Term(Term::p_) { }
+    P() : Term(Term::p_) { m_stream = 0; }
     TermPtr apply(const TermPtr& x) const;
-    QString output() const { return m_output; }
-
+    void setStream(QTextStream* stream);
 private:
-    mutable QString m_output;
+    QTextStream* m_stream;
 };
 
 struct R : Term {
@@ -99,7 +100,7 @@ struct R : Term {
 };
 
 struct A : Term {
-    A() : Term(Term::a_) { }
+    A() : Term(Term::a_), isThunk(false) { }
     TermPtr apply() const;
     TermPtr apply(const TermPtr& x) const;
 
@@ -108,6 +109,7 @@ struct A : Term {
     void addTerm(const TermPtr&);
     TermPtr left;
     TermPtr right;
+    bool isThunk;
 };
 
 static TermPtr i()
@@ -191,8 +193,9 @@ QString Term::toString() const
     case a_:
       {
           const A* a = static_cast<const A*>(this);
-          return QString("A%1%2").arg(a->left ? a->left->toString() : QString())
-                                 .arg(a->right ? a->right->toString() : QString());
+          return QString("%1%2%3").arg(!a->isThunk ? "A" : QString())
+                                  .arg(a->left ? a->left->toString() : QString())
+                                  .arg(a->right ? a->right->toString() : QString());
       }
     default:
         Q_ASSERT(false);
@@ -222,9 +225,17 @@ QString Term::toStringApply(const TermPtr& arg) const
     case s1_:
     case k1_:
     case r1_:
-        return CYAN() + toString() + "₁" + RED() + arg->toString() + RESET();
+      {
+          QString s = toString();
+          s.insert(1, "₁");
+          return CYAN() + s + RED() + arg->toString() + RESET();
+      }
     case s2_:
-        return CYAN() + toString() + "₂" + RED() + arg->toString() + RESET();
+      {
+          QString s = toString();
+          s.insert(1, "₂");
+          return CYAN() + s + RED() + arg->toString() + RESET();
+      }
     default:
         Q_ASSERT(false);
         return QString();
@@ -244,15 +255,13 @@ public:
     void print()
     {
         m_stream->flush();
-        fprintf(stderr, "%s", qPrintable(m_out));
-        m_out.clear();
     }
 
     bool isVerbose() const
-    { return m_verbose; }
+    { return m_stream; }
 
-    void setVerbose(bool verbose)
-    { m_verbose = verbose; }
+    void setStream(QTextStream* stream)
+    { m_stream = stream; }
 
     int prefixCount() const { return m_prefix.count(); }
     QString prefix() const;
@@ -286,6 +295,8 @@ public:
     }
 
     void generateProgramString(const QString& string, bool replace = false);
+    void generateOutputString();
+    void generateOutputStringEnd();
     void generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth);
     void generateReturnString(const TermPtr& r);
     void generateInputString(const EvaluationList& list);
@@ -294,12 +305,9 @@ public:
 private:
     Verbose()
     {
-        m_verbose = false;
-        m_stream = new QTextStream(&m_out);
+        m_stream = 0;
     }
 
-    bool m_verbose;
-    QString m_out;
     QString m_program;
     QStringList m_prefix;
     QStringList m_postfix;
@@ -308,13 +316,29 @@ private:
 
 void Verbose::generateProgramString(const QString& string, bool replace)
 {
-    if (!m_verbose)
+    if (!isVerbose())
         return;
     if (replace)
         m_program = string;
     else
         m_program += string;
     *m_stream << PURPLE() << m_program << "\n" << RESET();
+    print();
+}
+
+void Verbose::generateOutputString()
+{
+    if (!isVerbose())
+        return;
+    *m_stream << PURPLE() << "output: ";
+    print();
+}
+
+void Verbose::generateOutputStringEnd()
+{
+    if (!isVerbose())
+        return;
+    *m_stream << "\n" << RESET();
     print();
 }
 
@@ -330,7 +354,7 @@ QString Verbose::postfix() const
 
 void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth)
 {
-    if (!m_verbose)
+    if (!isVerbose())
         return;
 
     QString apply = term1->toStringApply(term2);
@@ -343,7 +367,7 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
         << prefix()
         << apply
         << postfix()
-#if 0
+#if 1
         << "  " << evaluationDepth
 #endif
         << "\n";
@@ -353,14 +377,14 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
 
 void Verbose::generateReturnString(const TermPtr& r)
 {
-    if (!m_verbose)
+    if (!isVerbose())
         return;
 
     QString ret = r->toString();
     if (ret.isEmpty())
         return;
 
-    QString program = "return type: '" + r->typeToString() + "\'";
+    QString program = "return type: " + r->typeToString() + "";
     Verbose::instance()->generateProgramString(program, true /*replace*/);
 
     *m_stream << "  "
@@ -373,7 +397,7 @@ void Verbose::generateReturnString(const TermPtr& r)
 
 void Verbose::generateInputString(const EvaluationList& list)
 {
-    if (list.isEmpty())
+    if (!isVerbose() || list.isEmpty())
         return;
 
     // Whatever is left in the evaluation list is input
@@ -390,7 +414,7 @@ void Verbose::generateInputString(const EvaluationList& list)
 
 void Verbose::generateReplacementString(const TermPtr& term1, const TermPtr& term2)
 {
-    if (!m_verbose)
+    if (!isVerbose())
       return;
 
     QString from = term1->toString();
@@ -463,6 +487,37 @@ private:
     mutable int m_postfixNumber;
 };
 
+class EvaluationCache {
+public:
+    static EvaluationCache* instance()
+    {
+        static EvaluationCache* s_instance = 0;
+        if (!s_instance)
+            s_instance = new EvaluationCache;
+        return s_instance;
+    }
+
+    void insert(const QString& key, const TermPtr& value);
+    TermPtr result(const QString& key) const;
+
+private:
+    EvaluationCache()
+    { }
+
+    QHash<QString, TermPtr> m_cache;
+};
+
+void EvaluationCache::insert(const QString& key, const TermPtr& value)
+{
+    if (!m_cache.contains(key))
+        m_cache.insert(key, value);
+}
+
+TermPtr EvaluationCache::result(const QString& key) const
+{
+    return m_cache.value(key, TermPtr());
+}
+
 TermPtr eval(const TermPtr& left, const TermPtr& right)
 {
     static int evaluationDepth = 0;
@@ -472,9 +527,9 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
         exit(2);
     }
 
-    evaluationDepth++;
-
     Verbose::instance()->generateEvalString(left, right, evaluationDepth);
+
+    evaluationDepth++;
 
     TermPtr r;
     switch(left->type()) {
@@ -509,6 +564,12 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
     }
 
     evaluationDepth--;
+
+#if LAZY_EVALUATION
+    if (left->type() != Term::p_ && left->type() != Term::r_)
+        EvaluationCache::instance()->insert(left->toStringApply(right), r);
+#endif
+
     return r;
 }
 
@@ -554,6 +615,42 @@ TermPtr S::S1::apply(const TermPtr& y) const
 
 TermPtr S::S1::S2::apply(const TermPtr& z) const
 {
+#if LAZY_EVALUATION
+    TermPtr first;
+    TermPtr second;
+    {
+        TermPtr cached = EvaluationCache::instance()->result(x->toStringApply(z));
+        if (!cached.isNull()) {
+            first = cached;
+        } else {
+            A* xz = new A;
+            xz->left = x;
+            xz->right = z;
+            xz->isThunk = true;
+            first = TermPtr(xz);
+        }
+    }
+
+    {
+        TermPtr cached = EvaluationCache::instance()->result(y->toStringApply(z));
+        if (!cached.isNull()) {
+            second = cached;
+        } else {
+            A* yz = new A;
+            yz->left = y;
+            yz->right = z;
+            yz->isThunk = true;
+            second = TermPtr(yz);
+        }
+    }
+
+    A* evaluate = new A;
+    evaluate->left = first;
+    evaluate->right = second;
+    evaluate->isThunk = true;
+
+    return TermPtr(evaluate);
+#else
     TermPtr first;
     TermPtr second;
     if (Verbose::instance()->isVerbose()) {
@@ -571,6 +668,7 @@ TermPtr S::S1::S2::apply(const TermPtr& z) const
         second = eval(y, z);
 
     return (eval(first, second));
+#endif
 }
 
 TermPtr V::apply(const TermPtr& /*x*/) const
@@ -580,8 +678,26 @@ TermPtr V::apply(const TermPtr& /*x*/) const
 
 TermPtr P::apply(const TermPtr& x) const
 {
-    m_output += x->toString();
-    return x;
+    TermPtr toPrint = x;
+    while (toPrint->type() == Term::a_ && static_cast<A*>(toPrint.data())->isThunk) {
+        SubEval subEval;
+        subEval.addPrefix("P");
+        A* a = static_cast<A*>(toPrint.data());
+        toPrint = a->apply();
+    }
+
+    if (m_stream) {
+        *m_stream << toPrint->toString();
+        Verbose::instance()->generateOutputString();
+        m_stream->flush();
+        Verbose::instance()->generateOutputStringEnd();
+    }
+    return toPrint;
+}
+
+void P::setStream(QTextStream* stream)
+{
+    m_stream = stream;
 }
 
 TermPtr R::apply(const TermPtr& x) const
@@ -667,6 +783,8 @@ void A::addTerm(const TermPtr& term)
 TermPtr A::apply() const
 {
     Q_ASSERT(isWellFormed());
+    if (isThunk)
+        return eval(left, right);
     SubEval subEval;
     subEval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
     return eval(left, right);
@@ -696,7 +814,7 @@ bool evaluationListIsWellFormed(const EvaluationList& list)
     return true;
 }
 
-QString cppInterpreter(const QString& string)
+void cppInterpreter(const QString& string)
 {
     Verbose::instance()->generateProgramString("program: " + string);
     Verbose::instance()->generateProgramString("begin", true /*replace*/);
@@ -704,7 +822,7 @@ QString cppInterpreter(const QString& string)
 
     if (string.isEmpty()) {
         Verbose::instance()->generateProgramString("end", true /*replace*/);
-        return QString();
+        return;
     }
 
     EvaluationList evaluationList;
@@ -722,7 +840,7 @@ QString cppInterpreter(const QString& string)
         default:
             QString error = QString("Error: invalid char in hof program! ch=`%1`").arg(ch);
             Q_ASSERT_X(false, "hof", qPrintable(error));
-            return QString();
+            return;
         }
 
         if (evaluationList.isEmpty()) {
@@ -785,21 +903,19 @@ QString cppInterpreter(const QString& string)
     Verbose::instance()->generateReturnString(evaluate);
     Verbose::instance()->generateInputString(evaluationList);
     Verbose::instance()->generateProgramString("end", true /*replace*/);
-
-    return static_cast<P*>(p().data())->output();
 }
 
-Hof::Hof(bool verbose)
-  : m_verbose(verbose)
+Hof::Hof(QTextStream* outputStream, QTextStream* verboseStream)
 {
-    Verbose::instance()->setVerbose(verbose);
+    static_cast<P*>(p().data())->setStream(outputStream);
+    Verbose::instance()->setStream(verboseStream);
 }
 
 Hof::~Hof()
 { }
 
-QString Hof::run(const QString& string)
+void Hof::run(const QString& string)
 {
-    return cppInterpreter(string);
+    cppInterpreter(string);
 }
 

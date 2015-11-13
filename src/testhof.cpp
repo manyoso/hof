@@ -25,6 +25,8 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
     /* special value used to indicate stack depth exceeded */
     *ok = hof.exitStatus() == QProcess::NormalExit &&
         (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2);
+    if (!*ok)
+        qDebug() << hof.exitStatus() << " " << hof.exitCode() << hof.error();
     return hof.readAll().trimmed();
 }
 
@@ -158,10 +160,7 @@ void TestHof::testHofNoise()
             randomHofProgram.append(ch);
         }
         bool ok = false;
-#if 0
-        qDebug() << randomHofProgram;
-#endif
         runHof(randomHofProgram, &ok, false /*verbose*/);
-        QVERIFY(ok);
+        QVERIFY2(ok, qPrintable(randomHofProgram));
     }
 }

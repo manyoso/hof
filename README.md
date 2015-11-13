@@ -12,3 +12,6 @@ Hof is a new language based on the SKI calculus named after Douglas Hofstadter.
                                 probability distribution
     T -> A T₁ T₂  (T₁T₂)        Form a new term out of the application of
                                 terms T₁ and T₂
+
+The interpreter for the Hof language is written in C++ and features lazy
+evaluation implemented with memoized thunks.

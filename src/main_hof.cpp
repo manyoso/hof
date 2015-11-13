@@ -67,10 +67,14 @@ int main(int argc, char** argv)
     program = program.simplified();
     program.replace(" ", "");
 
-    Hof hof(isVerbose);
-    QString out = hof.run(program);
-    if (!out.isEmpty())
-        printf("%s\n", qPrintable(out));
+    QTextStream stream(stdout);
+    QTextStream verboseStream(stderr);
+    Hof hof(&stream, isVerbose ? &verboseStream : 0);
+    hof.run(program);
+    if (!isVerbose) {
+        stream << "\n";
+        stream.flush();
+    }
 
     return EXIT_SUCCESS;
 }
