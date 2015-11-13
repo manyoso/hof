@@ -52,29 +52,29 @@ QString runHof(const QString& program,
 #define I "I"
 #define K "K"
 #define S "S"
-#define APPLY(X) "A" X
-#define PRINT(X) "P" X
-#define RANDOM(X, Y) "R" X Y
-#define TRUE "K"
-#define FALSE "V"
+#define V "V"
+#define P "P"
+#define R "R"
+#define A "A"
+#define APPLY(X) A X
+#define PRINT(X) P X
+#define RANDOM(X, Y) R X Y
+#define TRUE K
+#define FALSE V
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
 #define AND(X, Y) X Y FALSE
 #define OR(X, Y) X TRUE Y
 #define ZERO FALSE
 #define ONE I
-#define SUCC(X) "AA" S "AA" S "A" K S K X
-#define OMEGA S I I "AA" S I I
+#define SUCC(X) A A S A A S A K S K X
+#define OMEGA S I I A A S I I
 
 // standard beta recursion combinator
-#define BETA_RECURSE(X) S "A" K X "AA" S I I "AA" S "A" K X "AA" S I I
+#define BETA_RECURSE(X) S A K X A A S I I A A S A K X A A S I I
 
 // standard y combinator
-#define YCOMBINATOR(X) S "A" K "AA" S I I "AA" S "AA" S "A" K S K "A" K "AA" S I I X
-// S (K (S I I)) (S (S (K S) K) (K (S I I)))
-
-// tromp's y combinator
-#define YCOMBINATOR_1(X) S S K "A" S "A" K "AA" S S "A" S "AA" S S K K X
+#define YCOMBINATOR(X) S A K A A S I I A A S A A S A K S K A K A A S I I X
 
 #define WHILE(COND, OPERATION, INITIAL) ""
 
