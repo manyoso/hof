@@ -3,7 +3,12 @@
 
 #include "testhof.h"
 
-QString runHof(const QString& program, bool* ok, bool verbose = false)
+QString runHof(const QString& program,
+               bool* ok,
+               bool verbose = false,
+               int msecsToTimeout = 5000,
+               bool expectTimeout = false
+              )
 {
     QDir bin(QCoreApplication::applicationDirPath());
 
@@ -21,12 +26,26 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
 
     hof.setArguments(args);
     hof.start();
-    hof.waitForFinished();
+    bool finished = hof.waitForFinished(msecsToTimeout);
+    if (!finished) {
+        hof.kill();
+        hof.waitForFinished();
+    }
+
     /* special value used to indicate stack depth exceeded */
-    *ok = hof.exitStatus() == QProcess::NormalExit &&
-        (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2);
-    if (!*ok)
-        qDebug() << hof.exitStatus() << " " << hof.exitCode() << hof.error();
+    if (!expectTimeout) {
+        *ok = hof.exitStatus() == QProcess::NormalExit &&
+              (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2);
+    } else {
+        *ok = finished != expectTimeout;
+    }
+
+    if (!*ok) {
+        qDebug() << "exit status:" << hof.exitStatus()
+                 << " code:" << hof.exitCode()
+                 << " error:" << hof.error();
+    }
+
     return hof.readAll().trimmed();
 }
 
@@ -45,6 +64,7 @@ QString runHof(const QString& program, bool* ok, bool verbose = false)
 #define ZERO FALSE
 #define ONE I
 #define SUCC(X) "AA" S "AA" S "A" K S K X
+#define OMEGA S I I "AA" S I I
 
 // standard beta recursion combinator
 #define BETA_RECURSE(X) S "A" K X "AA" S I I "AA" S "A" K X "AA" S I I
@@ -62,8 +82,6 @@ void TestHof::testHof()
 {
     bool ok = false;
     QString out;
-
-    //out = runHof(YCOMBINATOR("API"), &ok, true);
 
     // print
     out = runHof(PRINT(I), &ok);
@@ -130,6 +148,34 @@ void TestHof::testHof()
     // print random
     out = runHof(RANDOM(APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
     QVERIFY2(out == "I" || out == "K", qPrintable(out));
+    QVERIFY(ok);
+}
+
+void TestHof::testY()
+{
+    bool ok = false;
+    QString out;
+    int timeout = 500;
+    bool verbose = false;
+    bool expectTimeout = true;
+
+    out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, expectTimeout);
+    QVERIFY(out.count('I') > 100);
+    out.replace("I", "");
+    QCOMPARE(out, QString());
+    QVERIFY(ok);
+}
+
+void TestHof::testOmega()
+{
+    bool ok = false;
+    QString out;
+    int timeout = 500;
+    bool verbose = false;
+    bool expectTimeout = true;
+
+    out = runHof(OMEGA, &ok, verbose, timeout, expectTimeout);
+    QCOMPARE(out, QString());
     QVERIFY(ok);
 }
 

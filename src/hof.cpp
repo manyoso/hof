@@ -367,7 +367,7 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
         << prefix()
         << apply
         << postfix()
-#if 1
+#if 0
         << "  " << evaluationDepth
 #endif
         << "\n";
@@ -623,11 +623,7 @@ TermPtr S::S1::S2::apply(const TermPtr& z) const
         if (!cached.isNull()) {
             first = cached;
         } else {
-            A* xz = new A;
-            xz->left = x;
-            xz->right = z;
-            xz->isThunk = true;
-            first = TermPtr(xz);
+            first = eval(x, z);
         }
     }
 
