@@ -531,6 +531,12 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
 
     evaluationDepth++;
 
+    TermPtr cached = EvaluationCache::instance()->result(left->toStringApply(right));
+    if (!cached.isNull()) {
+        evaluationDepth--;
+        return cached;
+    }
+
     TermPtr r;
     switch(left->type()) {
     case Term::i_:
@@ -566,7 +572,7 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
     evaluationDepth--;
 
 #if LAZY_EVALUATION
-    if (left->type() != Term::p_ && left->type() != Term::r_)
+    if (left->type() != Term::a_ && left->type() != Term::p_ && left->type() != Term::r_)
         EvaluationCache::instance()->insert(left->toStringApply(right), r);
 #endif
 
@@ -616,28 +622,14 @@ TermPtr S::S1::apply(const TermPtr& y) const
 TermPtr S::S1::S2::apply(const TermPtr& z) const
 {
 #if LAZY_EVALUATION
-    TermPtr first;
-    TermPtr second;
-    {
-        TermPtr cached = EvaluationCache::instance()->result(x->toStringApply(z));
-        if (!cached.isNull()) {
-            first = cached;
-        } else {
-            first = eval(x, z);
-        }
-    }
-
-    {
-        TermPtr cached = EvaluationCache::instance()->result(y->toStringApply(z));
-        if (!cached.isNull()) {
-            second = cached;
-        } else {
-            A* yz = new A;
-            yz->left = y;
-            yz->right = z;
-            yz->isThunk = true;
-            second = TermPtr(yz);
-        }
+    TermPtr first = eval(x, z);
+    TermPtr second = EvaluationCache::instance()->result(y->toStringApply(z));
+    if (second.isNull()) {
+        A* yz = new A;
+        yz->left = y;
+        yz->right = z;
+        yz->isThunk = true;
+        second = TermPtr(yz);
     }
 
     A* evaluate = new A;
