@@ -7,8 +7,7 @@ QString runHof(const QString& program,
                bool* ok,
                bool verbose = false,
                int msecsToTimeout = 5000,
-               bool expectTimeout = false
-              )
+               bool expectTimeout = false)
 {
     QDir bin(QCoreApplication::applicationDirPath());
 
@@ -160,11 +159,90 @@ void TestHof::testY()
     bool expectTimeout = true;
 
     out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, expectTimeout);
-    qDebug() << "iterations" << out.count('I');
-    QVERIFY(out.count('I') > 2000); // crude benchmark in debug mode
+    QVERIFY(out.count('I') > 1);
     out.replace("I", "");
     QCOMPARE(out, QString());
     QVERIFY(ok);
+}
+
+bool testYBenchmarkImplemented()
+{
+    QDir bin(QCoreApplication::applicationDirPath());
+
+    QProcess hof;
+    hof.setProgram(bin.path() + QDir::separator() + "hof");
+
+    QStringList args = QStringList()
+      << "--program"
+      << YCOMBINATOR("API");
+
+    static bool verbose = false;
+    if (verbose) {
+        args.append("--verbose");
+        hof.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    }
+
+    hof.setArguments(args);
+    hof.start();
+
+    static qint64 total = 1000;
+    qint64 totalRead = 0;
+    while (hof.waitForReadyRead() && totalRead < total) {
+        qint64 bytesAvailable = hof.bytesAvailable();
+        qint64 remaining = qMin(total - totalRead, bytesAvailable);
+        QByteArray output = hof.read(remaining);
+        qint64 size = output.size();
+        for (qint64 i = 0; i < size; ++i) {
+            if (output.at(i) != 'I')
+                return false;
+            totalRead++;
+        }
+    }
+
+    hof.kill();
+    hof.waitForFinished();
+    return true;
+}
+
+void TestHof::testYBenchmark()
+{
+    int iterations = 10;
+    QList<int> results;
+
+    for (int i = 0; i < iterations; ++i) {
+        QElapsedTimer timer;
+        timer.start();
+        testYBenchmarkImplemented();
+        results.append(timer.elapsed());
+    }
+
+    int totalTime = 0;
+    {
+        QList<int>::const_iterator it = results.begin();
+        for (; it != results.end(); ++it)
+            totalTime += *it;
+    }
+
+    qreal mean = totalTime / iterations;
+    qreal sumOfSquares = 0;
+    {
+        QList<int>::const_iterator it = results.begin();
+        for (; it != results.end(); ++it)
+            sumOfSquares += (qreal(*it) - mean) * (qreal(*it) - mean);
+    }
+
+    qreal variance = sumOfSquares / qreal(iterations) - 1;
+    qreal stdDeviation = qSqrt(variance);
+
+    qDebug() << "iterations" << iterations
+             << "time" << mean
+             << "deviation" << stdDeviation;
+
+#ifdef NDEBUG
+    QVERIFY(mean < 170);
+#else
+    QVERIFY(mean < 250);
+#endif
 }
 
 void TestHof::testOmega()

@@ -5,6 +5,7 @@ class TestHof: public QObject {
 private slots:
     void testHof();
     void testY();
+    void testYBenchmark();
     void testOmega();
     void testHofNoise();
 };
