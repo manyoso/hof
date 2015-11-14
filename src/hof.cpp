@@ -344,7 +344,7 @@ public:
     void generateProgramString(const QString& string, bool replace = false);
     void generateOutputString();
     void generateOutputStringEnd();
-    void generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth);
+    void generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth, bool cached);
     void generateReturnString(const TermPtr& r);
     void generateInputString(const EvaluationList& list);
     void generateReplacementString(const TermPtr& term1, const TermPtr& term2);
@@ -401,7 +401,7 @@ QString Verbose::postfix() const
     return m_postfix.join("");
 }
 
-void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth)
+void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth, bool cached)
 {
     if (!isVerbose())
         return;
@@ -411,13 +411,15 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
         return;
 
     Q_UNUSED(evaluationDepth);
+    Q_UNUSED(cached);
 
     *m_stream << "  "
         << prefix()
         << apply
         << postfix()
 #if 0
-        << "  " << evaluationDepth
+        << "\t" << "depth: " << evaluationDepth
+        << ", " << (cached ? "cached: true" : "cached: false")
 #endif
         << "\n";
 
@@ -576,11 +578,10 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
         exit(2);
     }
 
-    Verbose::instance()->generateEvalString(left, right, evaluationDepth);
-
     evaluationDepth++;
 
     TermPtr cached = EvaluationCache::instance()->result(left->toStringApply(right));
+    Verbose::instance()->generateEvalString(left, right, evaluationDepth, !cached.isNull());
     if (!cached.isNull()) {
         evaluationDepth--;
         return cached;
@@ -803,8 +804,8 @@ bool A::isWellFormed() const
 bool A::doNotCache() const
 {
     Q_ASSERT(!left.isNull());
-    return left->type() == Term::r_ || left->type() == Term::p_ ||
-           (left->type() == Term::a_ && static_cast<const A*>(left.data())->doNotCache());
+    return left->type() == Term::r_ || left->type() == Term::p_ /*||
+           (left->type() == Term::a_ && static_cast<const A*>(left.data())->doNotCache())*/;
 }
 
 void A::addTerm(const TermPtr& term)
