@@ -3,11 +3,17 @@
 
 #include "testhof.h"
 
+enum Expectation {
+    Normal,  // expect no timeout and no crash
+    NoCrash, // expect no crash
+    Timeout  // expect timeout
+};
+
 QString runHof(const QString& program,
                bool* ok,
                bool verbose = false,
                int msecsToTimeout = 5000,
-               bool expectTimeout = false)
+               Expectation e = Expectation::Normal)
 {
     QDir bin(QCoreApplication::applicationDirPath());
 
@@ -32,11 +38,27 @@ QString runHof(const QString& program,
     }
 
     /* special value used to indicate stack depth exceeded */
-    if (!expectTimeout) {
-        *ok = hof.exitStatus() == QProcess::NormalExit &&
-              (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2);
-    } else {
-        *ok = finished != expectTimeout;
+    switch (e) {
+    case Expectation::Normal:
+        {
+            *ok = finished && hof.exitStatus() == QProcess::NormalExit &&
+                  (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2);
+            break;
+        }
+    case Expectation::NoCrash:
+        {
+            *ok = !finished || (hof.exitStatus() == QProcess::NormalExit &&
+                  (hof.exitCode() == EXIT_SUCCESS || hof.exitCode() == 2));
+            break;
+        }
+    case Expectation::Timeout:
+        {
+            *ok = !finished;
+            break;
+        }
+    default:
+        *ok = false;
+        break;
     }
 
     if (!*ok) {
@@ -156,9 +178,8 @@ void TestHof::testY()
     QString out;
     int timeout = 500;
     bool verbose = false;
-    bool expectTimeout = true;
 
-    out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, expectTimeout);
+    out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, Expectation::Timeout);
     QVERIFY(out.count('I') > 1);
     out.replace("I", "");
     QCOMPARE(out, QString());
@@ -251,9 +272,8 @@ void TestHof::testOmega()
     QString out;
     int timeout = 500;
     bool verbose = false;
-    bool expectTimeout = true;
 
-    out = runHof(OMEGA, &ok, verbose, timeout, expectTimeout);
+    out = runHof(OMEGA, &ok, verbose, timeout, Expectation::Timeout);
     QCOMPARE(out, QString());
     QVERIFY(ok);
 }
@@ -285,7 +305,7 @@ void TestHof::testHofNoise()
             randomHofProgram.append(ch);
         }
         bool ok = false;
-        runHof(randomHofProgram, &ok, false /*verbose*/);
+        runHof(randomHofProgram, &ok, false /*verbose*/, 500 /*timeout*/, Expectation::NoCrash);
         QVERIFY2(ok, qPrintable(randomHofProgram));
     }
 }
