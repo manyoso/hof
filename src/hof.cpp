@@ -804,8 +804,7 @@ bool A::isWellFormed() const
 bool A::doNotCache() const
 {
     Q_ASSERT(!left.isNull());
-    return left->type() == Term::r_ || left->type() == Term::p_ /*||
-           (left->type() == Term::a_ && static_cast<const A*>(left.data())->doNotCache())*/;
+    return left->type() == Term::r_ || left->type() == Term::p_;
 }
 
 void A::addTerm(const TermPtr& term)
