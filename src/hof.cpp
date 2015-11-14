@@ -803,7 +803,7 @@ bool A::isWellFormed() const
 bool A::doNotCache() const
 {
     Q_ASSERT(!left.isNull());
-    return isThunk || left->type() == Term::r_ || left->type() == Term::p_ ||
+    return left->type() == Term::r_ || left->type() == Term::p_ ||
            (left->type() == Term::a_ && static_cast<const A*>(left.data())->doNotCache());
 }
 
