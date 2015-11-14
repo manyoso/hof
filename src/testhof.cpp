@@ -239,9 +239,9 @@ void TestHof::testYBenchmark()
              << "deviation" << stdDeviation;
 
 #ifdef NDEBUG
-    QVERIFY(mean < 170);
+    QVERIFY(mean < 105);
 #else
-    QVERIFY(mean < 250);
+    QVERIFY(mean < 150);
 #endif
 }
 

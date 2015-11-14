@@ -111,6 +111,7 @@ struct A : Term {
 
     bool isFull() const;
     bool isWellFormed() const;
+    bool doNotCache() const;
     void addTerm(const TermPtr&);
     TermPtr left;
     TermPtr right;
@@ -620,8 +621,10 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
     evaluationDepth--;
 
 #if LAZY_EVALUATION
-    if (left->type() != Term::a_ && left->type() != Term::p_ && left->type() != Term::r_)
+    if (left->type() != Term::p_ && left->type() != Term::r_ &&
+       (left->type() != Term::a_ || !static_cast<A*>(left.data())->doNotCache())) {
         EvaluationCache::instance()->insert(left->toStringApply(right), r);
+    }
 #endif
 
     return r;
@@ -795,6 +798,13 @@ bool A::isWellFormed() const
     bool leftIsWellFormed = left->type() != Term::a_ || static_cast<const A*>(left.data())->isWellFormed();
     bool rightIsWellFormed = right->type() != Term::a_ || static_cast<const A*>(right.data())->isWellFormed();
     return leftIsWellFormed && rightIsWellFormed;
+}
+
+bool A::doNotCache() const
+{
+    Q_ASSERT(!left.isNull());
+    return isThunk || left->type() == Term::r_ || left->type() == Term::p_ ||
+           (left->type() == Term::a_ && static_cast<const A*>(left.data())->doNotCache());
 }
 
 void A::addTerm(const TermPtr& term)
