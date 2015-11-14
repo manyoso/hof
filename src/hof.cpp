@@ -670,7 +670,14 @@ TermPtr S::S1::apply(const TermPtr& y) const
 TermPtr S::S1::S2::apply(const TermPtr& z) const
 {
 #if LAZY_EVALUATION
-    TermPtr first = eval(x, z);
+    TermPtr first;
+    if (Verbose::instance()->isVerbose()) {
+        SubEval subEval;
+        subEval.addPostfix(y->toString() + z->toString());
+        first = eval(x, z);
+    } else
+        first = eval(x, z);
+
     TermPtr second = EvaluationCache::instance()->result(y->toStringApply(z));
     if (second.isNull()) {
         A* yz = new A;
