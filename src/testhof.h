@@ -8,4 +8,5 @@ private slots:
     void testYBenchmark();
     void testOmega();
     void testHofNoise();
+    void testTranslateSki();
 };

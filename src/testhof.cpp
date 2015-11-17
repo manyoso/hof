@@ -13,7 +13,8 @@ QString runHof(const QString& program,
                bool* ok,
                bool verbose = false,
                int msecsToTimeout = 5000,
-               Expectation e = Expectation::Normal)
+               Expectation e = Expectation::Normal,
+               const QString& translate = "")
 {
     QDir bin(QCoreApplication::applicationDirPath());
 
@@ -23,6 +24,11 @@ QString runHof(const QString& program,
     QStringList args = QStringList()
       << "--program"
       << program;
+
+    if (!translate.isEmpty()) {
+        args.append("--translate");
+        args.append(translate);
+    }
 
     if (verbose) {
         args.append("--verbose");
@@ -308,4 +314,15 @@ void TestHof::testHofNoise()
         runHof(randomHofProgram, &ok, false /*verbose*/, 500 /*timeout*/, Expectation::NoCrash);
         QVERIFY2(ok, qPrintable(randomHofProgram));
     }
+}
+
+void TestHof::testTranslateSki()
+{
+    bool ok = false;
+    QString out;
+
+    QString skiYCombinator = "S(K(SII))(S(S(KS)K)(K(SII)))";
+    out = runHof(skiYCombinator, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "ski" /*translate*/);
+    QCOMPARE(out, QString(YCOMBINATOR("")));
+    QVERIFY(ok);
 }

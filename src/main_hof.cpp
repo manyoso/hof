@@ -1,6 +1,8 @@
 #include <QtCore>
 
 #include "hof.h"
+#include "lambda.h"
+#include "ski.h"
 
 int main(int argc, char** argv)
 {
@@ -25,12 +27,16 @@ int main(int argc, char** argv)
     QCommandLineOption verboseOption("verbose", "Verbose execution evaluation.");
     parser.addOption(verboseOption);
 
+    QCommandLineOption translateOption("translate", "Translate from (ski|lambda) to Hof.", "translate");
+    parser.addOption(translateOption);
+
     parser.process(*QCoreApplication::instance());
 
     bool isFile = parser.isSet(fileOption);
     bool isProgram = parser.isSet(programOption);
     bool isInput = parser.isSet(inputOption);
     bool isVerbose = parser.isSet(verboseOption);
+    bool isTranslate = parser.isSet(translateOption);
 
     if ((isFile && isProgram) || (!isFile && !isProgram))
         parser.showHelp(-1);
@@ -66,6 +72,19 @@ int main(int argc, char** argv)
     // Remove all whitespace from input too
     program = program.simplified();
     program.replace(" ", "");
+
+    if (isTranslate) {
+        QString translate = parser.value(translateOption);
+        if (translate == "ski")
+            program = Ski::fromSki(program);
+        else if (translate == "lambda")
+            program = Lambda::fromLambda(program);
+        else
+            parser.showHelp(-1);
+
+        printf("%s\n", qPrintable(program));
+        return EXIT_SUCCESS;
+    }
 
     QTextStream stream(stdout);
     QTextStream verboseStream(stderr);
