@@ -901,53 +901,51 @@ void cppInterpreter(const QString& string)
             continue;
         }
 
-        if (!evaluationList.isEmpty()) {
-            if (term->type() == Term::a_) {
-                if (evaluationList.back()->type() == Term::a_) {
-                    A* a = static_cast<A*>(evaluationList.back().data());
-                    Q_ASSERT(!a->isWellFormed());
-                    a->addTerm(term);
-                } else {
-                    evaluationList.append(term);
-                }
-
-                continue; // can't possibly be well formed at this point
-            }
-
+        if (term->type() == Term::a_) {
             if (evaluationList.back()->type() == Term::a_) {
                 A* a = static_cast<A*>(evaluationList.back().data());
                 Q_ASSERT(!a->isWellFormed());
                 a->addTerm(term);
-                term = TermPtr(); // remove the term since it was added
+            } else {
+                evaluationList.append(term);
             }
 
-            if (!evaluationListIsWellFormed(evaluationList))
-                continue;
-
-            Verbose::instance()->removePostfix(postfixIndex);
-            postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
-
-            SubEval subEval;
-            subEval.addPostfix(!term.isNull() ? term->toString() : QString());
-
-            TermPtr evaluate = evaluationList.takeFirst();
-            EvaluationList::const_iterator it = evaluationList.begin();
-            for (; it != evaluationList.end(); ++it)
-                evaluate = eval(evaluate, *it);
-
-            subEval.clear();
-
-            if (!term.isNull())
-                evaluate = eval(evaluate, term);
-
-            while (evaluate->type() == Term::a_) {
-                A* a = static_cast<A*>(evaluate.data());
-                if (!a->isWellFormed()) { break; }
-                evaluate = a->apply();
-            }
-
-            evaluationList = EvaluationList() << evaluate;
+            continue; // can't possibly be well formed at this point
         }
+
+        if (evaluationList.back()->type() == Term::a_) {
+            A* a = static_cast<A*>(evaluationList.back().data());
+            Q_ASSERT(!a->isWellFormed());
+            a->addTerm(term);
+            term = TermPtr(); // remove the term since it was added
+        }
+
+        if (!evaluationListIsWellFormed(evaluationList))
+            continue;
+
+        Verbose::instance()->removePostfix(postfixIndex);
+        postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
+
+        SubEval subEval;
+        subEval.addPostfix(!term.isNull() ? term->toString() : QString());
+
+        TermPtr evaluate = evaluationList.takeFirst();
+        EvaluationList::const_iterator it = evaluationList.begin();
+        for (; it != evaluationList.end(); ++it)
+            evaluate = eval(evaluate, *it);
+
+        subEval.clear();
+
+        if (!term.isNull())
+            evaluate = eval(evaluate, term);
+
+        while (evaluate->type() == Term::a_) {
+            A* a = static_cast<A*>(evaluate.data());
+            if (!a->isWellFormed()) { break; }
+            evaluate = a->apply();
+        }
+
+        evaluationList = EvaluationList() << evaluate;
     }
 
     Q_ASSERT(evaluationList.length() >= 1);
