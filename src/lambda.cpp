@@ -33,7 +33,7 @@ public:
         case RParen: r = QStringLiteral("RParen"); break;
         case Space: r = QStringLiteral("Space"); break;
         }
-        return r + ": '" + m_char + "'";
+        return r + ": '" + (m_char.isNull() ? QString("\\0") : m_char) + "'";
     }
 
 private:
@@ -280,13 +280,15 @@ void LambdaParser::parse()
 
 Token LambdaParser::current() const
 {
+    if (m_index >= m_tokens.count())
+        return Token();
     return m_tokens.at(m_index);
 }
 
 Token LambdaParser::advance(int i)
 {
     m_index += i;
-    return m_tokens.at(m_index);
+    return current();
 }
 
 Token LambdaParser::look(int i) const
