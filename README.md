@@ -6,7 +6,6 @@ Hof is a new language based on the SKI calculus named after Douglas Hofstadter.
     T -> I    λx.x              I combinator from SKI calculus
     T -> K    λx.λy.x           K combinator from SKI calculus
     T -> S    λx.λy.λz.xz(yz)   S combinator from SKI calculus
-    T -> V    λv.λx.x           Void combinator ignores v and returns I
     T -> P    λx.x              Print x to stdout
 
     T -> R    λx.λy.(x|y)       Randomly return either x or y with Bernoulli

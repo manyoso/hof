@@ -16,7 +16,7 @@ enum Format {
 
 class Term {
 public:
-    enum Type { i_, k_, k1_, s_, s1_, s2_, v_, p_, r_, r1_, a_};
+    enum Type { i_, k_, k1_, s_, s1_, s2_, p_, r_, r1_, a_};
 
     Term() : m_type(Type(-1)) { }
     Term(Type t) : m_type(t) { }
@@ -34,7 +34,6 @@ public:
         case s_: return QStringLiteral("S");
         case s1_: return QStringLiteral("S1");
         case s2_: return QStringLiteral("S2");
-        case v_: return QStringLiteral("V");
         case p_: return QStringLiteral("P");
         case r_: return QStringLiteral("R");
         case r1_: return QStringLiteral("R1");
@@ -77,11 +76,6 @@ struct S : Term {
         TermPtr x;
         TermPtr apply(const TermPtr& y) const;
     };
-    TermPtr apply(const TermPtr& x) const;
-};
-
-struct V : Term {
-    V() : Term(Term::v_) { }
     TermPtr apply(const TermPtr& x) const;
 };
 
@@ -142,14 +136,6 @@ static TermPtr s()
     return s_instance;
 }
 
-static TermPtr v()
-{
-    static TermPtr s_instance;
-    if (!s_instance)
-        s_instance = TermPtr(new V);
-    return s_instance;
-}
-
 static TermPtr p()
 {
     static TermPtr s_instance;
@@ -188,8 +174,6 @@ QString Term::toString() const
           const S::S1::S2* s2 = static_cast<const S::S1::S2*>(this);
           return QString("S%1%2").arg(s2->x->toString()).arg(s2->y->toString());
       }
-    case v_:
-        return QStringLiteral("V");
     case p_:
         return QStringLiteral("P");
     case r_:
@@ -264,7 +248,6 @@ QString Term::toStringApply(const TermPtr& arg, Format f) const
     case i_:
     case k_:
     case s_:
-    case v_:
     case p_:
     case r_:
     case a_:
@@ -601,8 +584,6 @@ TermPtr eval(const TermPtr& left, const TermPtr& right)
         r = static_cast<const S::S1*>(left.data())->apply(right); break;
     case Term::s2_:
         r = static_cast<const S::S1::S2*>(left.data())->apply(right); break;
-    case Term::v_:
-        r = static_cast<const V*>(left.data())->apply(right); break;
     case Term::p_:
         r = static_cast<const P*>(left.data())->apply(right); break;
     case Term::r_:
@@ -716,11 +697,6 @@ TermPtr S::S1::S2::apply(const TermPtr& z) const
 
     return (eval(first, second));
 #endif
-}
-
-TermPtr V::apply(const TermPtr& /*x*/) const
-{
-    return i();
 }
 
 TermPtr P::apply(const TermPtr& x) const
@@ -886,7 +862,6 @@ void cppInterpreter(const QString& string)
         case 'I': term = i(); break;
         case 'K': term = k(); break;
         case 'S': term = s(); break;
-        case 'V': term = v(); break;
         case 'P': term = p(); break;
         case 'R': term = r(); break;
         case 'A': term = TermPtr(new A); break;

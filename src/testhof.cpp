@@ -87,7 +87,7 @@ QString runHof(const QString& program,
 #define PRINT(X) P X
 #define RANDOM(X, Y) R X Y
 #define TRUE K
-#define FALSE V
+#define FALSE A K I
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
 #define AND(X, Y) X Y FALSE
@@ -289,7 +289,7 @@ void TestHof::testHofNoise()
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<int> distLength(0, 100);
-    std::uniform_int_distribution<int> distLetter(0, 6);
+    std::uniform_int_distribution<int> distLetter(0, 5);
 
     for (int i = 0; i < 100; ++i) {
         int length = distLength(gen);
@@ -301,10 +301,9 @@ void TestHof::testHofNoise()
             case 0: ch = 'I'; break;
             case 1: ch = 'K'; break;
             case 2: ch = 'S'; break;
-            case 3: ch = 'V'; break;
-            case 4: ch = 'A'; break;
-            case 5: ch = 'P'; break;
-            case 6: ch = 'R'; break;
+            case 3: ch = 'A'; break;
+            case 4: ch = 'P'; break;
+            case 5: ch = 'R'; break;
             default:
               Q_ASSERT(false);
             }
