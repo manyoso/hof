@@ -76,6 +76,7 @@ QString runHof(const QString& program,
     return hof.readAll().trimmed();
 }
 
+// built-in combinators
 #define I "I"
 #define K "K"
 #define S "S"
@@ -86,19 +87,28 @@ QString runHof(const QString& program,
 #define APPLY(X) A X
 #define PRINT(X) P X
 #define RANDOM(X, Y) R X Y
+
+// boolean logic
 #define TRUE K
 #define FALSE A K I
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
 #define AND(X, Y) X Y FALSE
 #define OR(X, Y) X TRUE Y
+
+// church numerals
+#define SUCC(X) A A S A A S A K S K X
 #define ZERO FALSE
 #define ONE I
-#define SUCC(X) A A S A A S A K S K X
-#define OMEGA S I I A A S I I
+#define TWO SUCC(ONE)
+#define THREE SUCC(TWO)
+#define FOUR SUCC(THREE)
+#define FIVE SUCC(FOUR)
 
-// standard beta recursion combinator
-#define BETA_RECURSE(X) S A K X A A S I I A A S A K X A A S I I
+// math operators
+
+// recursion
+#define OMEGA S I I A A S I I
 
 // standard y combinator
 #define YCOMBINATOR(X) S A K A A S I I A A S A A S A K S K A K A A S I I X
@@ -156,19 +166,19 @@ void TestHof::testHof()
     QVERIFY(ok);
 
     // church numerals
-    out = runHof(QString(SUCC(ONE)) + PRINT(I), &ok);
+    out = runHof(QString(TWO) + PRINT(I), &ok);
     QCOMPARE(out, QString("II"));
     QVERIFY(ok);
 
-    out = runHof(QString(SUCC(SUCC(ONE))) + PRINT(I), &ok);
+    out = runHof(QString(THREE) + PRINT(I), &ok);
     QCOMPARE(out, QString("III"));
     QVERIFY(ok);
 
-    out = runHof(QString(SUCC(SUCC(SUCC(ONE)))) + PRINT(I), &ok);
+    out = runHof(QString(FOUR) + PRINT(I), &ok);
     QCOMPARE(out, QString("IIII"));
     QVERIFY(ok);
 
-    out = runHof(QString(SUCC(SUCC(SUCC(SUCC(ONE))))) + PRINT(I), &ok);
+    out = runHof(QString(FIVE) + PRINT(I), &ok);
     QCOMPARE(out, QString("IIIII"));
     QVERIFY(ok);
 
