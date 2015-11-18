@@ -19,8 +19,8 @@ The interpreter for the language is written in C++ and features lazy evaluations
 implemented with memoized thunks.
 
 The interpreter also contains a full Lambda Calculus lexer/parser which
-transcompiles the untyped Lambda Calclulus into the SKI calculus, with η-reduction
-simplification included, which is then ranscompiled into Hof in turn.
+transcompiles the untyped Lambda Calclulus into the SKI calculus, including
+η-reduction simplification, which is then transcompiled into Hof.
 
 Another feature is verbose mode which shows the full evaluation cycle in
 colorized terminal output.  Combined with a good debugger, verbose mode can
