@@ -17,3 +17,12 @@ Hof is a new language based on the SKI calculus named after Douglas Hofstadter.
 
 The interpreter for the language is written in C++ and features lazy evaluations
 implemented with memoized thunks.
+
+The interpreter also contains a full Lambda Calculus lexer/parser which
+transcompiles the untyped Lambda Calclulus into the SKI calculus, with η-reduction
+simplification included, which is then ranscompiled into Hof in turn.
+
+Another feature is verbose mode which shows the full evaluation cycle in
+colorized terminal output.  Combined with a good debugger, verbose mode can
+reveal the entire combinator application loop by stepping through with
+breakpoints in the eval/apply cycle.
