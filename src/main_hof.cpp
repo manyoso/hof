@@ -62,17 +62,6 @@ int main(int argc, char** argv)
         program = parser.value(programOption);
     }
 
-    // Remove all whitespace
-    program = program.simplified();
-    program.replace(" ", "");
-
-    if (isInput)
-        program.append(parser.value(inputOption));
-
-    // Remove all whitespace from input too
-    program = program.simplified();
-    program.replace(" ", "");
-
     if (isTranslate) {
         QString translate = parser.value(translateOption);
         if (translate == "ski")
@@ -85,6 +74,17 @@ int main(int argc, char** argv)
         printf("%s\n", qPrintable(program));
         return EXIT_SUCCESS;
     }
+
+    // Remove all whitespace
+    program = program.simplified();
+    program.replace(" ", "");
+
+    if (isInput)
+        program.append(parser.value(inputOption));
+
+    // Remove all whitespace from input too
+    program = program.simplified();
+    program.replace(" ", "");
 
     QTextStream stream(stdout);
     QTextStream verboseStream(stderr);

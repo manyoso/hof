@@ -326,3 +326,24 @@ void TestHof::testTranslateSki()
     QCOMPARE(out, QString(YCOMBINATOR("")));
     QVERIFY(ok);
 }
+
+void TestHof::testTranslateLambda()
+{
+    bool ok = false;
+    QString out;
+
+    QString lambdaIdentity = "λx.x";
+    out = runHof(lambdaIdentity, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("I"));
+    QVERIFY(ok);
+
+    QString lambdaReverser = "λx.λy.(y x)";
+    out = runHof(lambdaReverser, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("AASAKASIK")); // with η-reduction
+    QVERIFY(ok);
+
+    QString lambdaIdentity2 = "λf.λx.(f x)";
+    out = runHof(lambdaIdentity2, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("I")); // with η-reduction
+    QVERIFY(ok);
+}

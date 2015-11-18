@@ -9,4 +9,5 @@ private slots:
     void testOmega();
     void testHofNoise();
     void testTranslateSki();
+    void testTranslateLambda();
 };
