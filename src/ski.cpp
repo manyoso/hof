@@ -104,18 +104,12 @@ QString Ski::fromSki(const QString& string)
             return error;
         };
 
-        if (terms.isEmpty() && !subTerm && term->ch != 'A') {
-            terms.append(term);
-            continue;
-        }
-
-        if (!subTerm && term->ch == 'A') {
+        if (subTerm)
+            subTerm->addTerm(term);
+        else if (term->ch == 'A')
             subTerm = static_cast<SkiSubTerm*>(term);
-            continue;
-        }
-
-        Q_ASSERT(subTerm);
-        subTerm->addTerm(term);
+        else
+            terms.append(term);
     }
 
     if (subTerm)
