@@ -84,38 +84,44 @@ QString runHof(const QString& program,
 #define P "P"
 #define R "R"
 #define A "A"
-#define APPLY(X) A X
-#define PRINT(X) P X
+#define PRINT(X)  P X
 #define RANDOM(X, Y) R X Y
+#define PTERM(X)  A P X
 
 // boolean logic
 #define TRUE K
-#define FALSE A K I
+#define FALSE "AKI"
 #define IF(X, Y, Z) X Y Z
 #define IFNOT(X, Y, Z) X Z Y
 #define AND(X, Y) X Y FALSE
 #define OR(X, Y) X TRUE Y
 
 // church numerals
-#define SUCC(X) A A S A A S A K S K X
+#define INC(X) "AASAASAKSK" X
+#define DEC(X) "AASAASAKSAASAKASAKSAASAASAKSAASAKASAKSAASAKASAKKAASAASAKSKAKAASAKASAKASIAASAKASAKKAASAKASIKAKAKKAKAKAKI" X
+#define ADD(M, N) N INC(M)
+#define SUBTRACT(M, N) N DEC(M)
 #define ZERO FALSE
 #define ONE I
-#define TWO SUCC(ONE)
-#define THREE SUCC(TWO)
-#define FOUR SUCC(THREE)
-#define FIVE SUCC(FOUR)
+#define TWO INC(ONE)
+#define THREE INC(TWO)
+#define FOUR INC(THREE)
+#define FIVE INC(FOUR)
 
-// math operators
+// church comparison operators
+#define ISZERO(X) "AASAASIAKAKAKIAKK" X
 
 // recursion
-#define OMEGA S I I A A S I I
+#define OMEGA "SIIAASII"
 
 // standard y combinator
-#define YCOMBINATOR(X) S A K A A S I I A A S A A S A K S K A K A A S I I X
+#define Y(X) "SAKAASIIAASAASAKSKAKAASII" X
+#define Y1(X) "SSKAASAKAASSASAASSKK" X
 
-#define WHILE(COND, OPERATION, INITIAL) ""
+// while loop
+#define WHILE(COND, OPERATION, INITIAL) "AASAKASAKAASAKAASIIAASAASAKSKAKAASIIAASAASAKSAASAKASAKSAASAKASAKASAKSAASAASAKSAASAKASAKSAASAKASAKASAKSAASAASAKSAASAKKAASAKSAASAKKSAKAASAKASAKASAKKAASAKASAASAKSKKAKAKAKKAKAKAKAKAKI" COND OPERATION INITIAL
 
-void TestHof::testHof()
+void TestHof::testPrint()
 {
     bool ok = false;
     QString out;
@@ -124,46 +130,58 @@ void TestHof::testHof()
     out = runHof(PRINT(I), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
+}
+
+void TestHof::testLogic()
+{
+    bool ok = false;
+    QString out;
 
     // if-then-else
-    out = runHof(IF(TRUE, APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(TRUE, PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(FALSE, APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(FALSE, PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
 
     // if-not-then-else
-    out = runHof(IFNOT(TRUE, APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IFNOT(TRUE, PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
 
-    out = runHof(IFNOT(FALSE, APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IFNOT(FALSE, PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
     //if-and-then-else
-    out = runHof(IF(AND(TRUE, TRUE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(AND(TRUE, TRUE), PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(AND(TRUE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(AND(TRUE, FALSE), PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
 
     // if-or-then-else
-    out = runHof(IF(OR(TRUE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(OR(TRUE, FALSE), PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(OR(FALSE, TRUE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(OR(FALSE, TRUE), PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(I));
     QVERIFY(ok);
 
-    out = runHof(IF(OR(FALSE, FALSE), APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(IF(OR(FALSE, FALSE), PTERM(I), PTERM(K)), &ok);
     QCOMPARE(out, QString(K));
     QVERIFY(ok);
+}
+
+void TestHof::testChurch()
+{
+    bool ok = false;
+    QString out;
 
     // church numerals
     out = runHof(QString(TWO) + PRINT(I), &ok);
@@ -182,10 +200,47 @@ void TestHof::testHof()
     QCOMPARE(out, QString("IIIII"));
     QVERIFY(ok);
 
+    // decrement
+    out = runHof(QString(DEC(FIVE)) + PRINT(I), &ok);
+    QCOMPARE(out, QString("IIII"));
+    QVERIFY(ok);
+
+    // add
+    out = runHof(QString(ADD(ONE, ONE)) + PRINT(I), &ok);
+    QCOMPARE(out, QString("II"));
+    QVERIFY(ok);
+
+    // subtract
+    out = runHof(QString(SUBTRACT(THREE, ONE)) + PRINT(I), &ok);
+    QCOMPARE(out, QString("II"));
+    QVERIFY(ok);
+}
+
+void TestHof::testComparison()
+{
+    bool ok = false;
+    QString out;
+
+    // comparison operators
+    out = runHof(QString(IF(ISZERO(ZERO), PTERM(I), PTERM(K))), &ok);
+    QCOMPARE(out, QString("I"));
+    QVERIFY(ok);
+
+    out = runHof(QString(IF(ISZERO(ONE), PTERM(I), PTERM(K))), &ok);
+    QCOMPARE(out, QString("K"));
+    QVERIFY(ok);
+}
+
+void TestHof::testRandom()
+{
+    bool ok = false;
+    QString out;
+
     // print random
-    out = runHof(RANDOM(APPLY(PRINT(I)), APPLY(PRINT(K))), &ok);
+    out = runHof(RANDOM(PTERM(I), PTERM(K)), &ok);
     QVERIFY2(out == "I" || out == "K", qPrintable(out));
     QVERIFY(ok);
+
 }
 
 void TestHof::testY()
@@ -195,7 +250,7 @@ void TestHof::testY()
     int timeout = 500;
     bool verbose = false;
 
-    out = runHof(YCOMBINATOR("API"), &ok, verbose, timeout, Expectation::Timeout);
+    out = runHof(Y("API"), &ok, verbose, timeout, Expectation::Timeout);
     QVERIFY(out.count('I') > 1);
     out.replace("I", "");
     QCOMPARE(out, QString());
@@ -211,7 +266,7 @@ bool testYBenchmarkImplemented()
 
     QStringList args = QStringList()
       << "--program"
-      << YCOMBINATOR("API");
+      << Y("API");
 
     static bool verbose = false;
     if (verbose) {
@@ -332,7 +387,7 @@ void TestHof::testTranslateSki()
 
     QString skiYCombinator = "S(K(SII))(S(S(KS)K)(K(SII)))";
     out = runHof(skiYCombinator, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "ski" /*translate*/);
-    QCOMPARE(out, QString(YCOMBINATOR("")));
+    QCOMPARE(out, QString(Y("")));
     QVERIFY(ok);
 }
 
@@ -348,11 +403,17 @@ void TestHof::testTranslateLambda()
 
     QString lambdaReverser = "λx.λy.(y x)";
     out = runHof(lambdaReverser, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
-    QCOMPARE(out, QString("AASAKASIK")); // with η-reduction
+    QCOMPARE(out, QString("AASAKASIK"));
     QVERIFY(ok);
 
     QString lambdaIdentity2 = "λf.λx.(f x)";
     out = runHof(lambdaIdentity2, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
-    QCOMPARE(out, QString("I")); // with η-reduction
+    QCOMPARE(out, QString("I"));
+    QVERIFY(ok);
+
+    QString pred = "λn.λf.λx.(((n λg.λh.(h (g f))) λt.x) λu.u)";
+    out = runHof(pred, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("AASAASAKSAASAKASAKSAASAASAKSAASAKASAKSAASAKASAKKAASAASAKSKAKAASAKASAKASIAASAKASAKKAASAKASIKAKAKKAKAKAKI"));
     QVERIFY(ok);
 }
+

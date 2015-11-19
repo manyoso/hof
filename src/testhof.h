@@ -3,7 +3,11 @@
 class TestHof: public QObject {
     Q_OBJECT
 private slots:
-    void testHof();
+    void testPrint();
+    void testLogic();
+    void testChurch();
+    void testComparison();
+    void testRandom();
     void testY();
     void testYBenchmark();
     void testOmega();
