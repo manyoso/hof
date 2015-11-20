@@ -37,6 +37,8 @@ int main(int argc, char** argv)
     bool isInput = parser.isSet(inputOption);
     bool isVerbose = parser.isSet(verboseOption);
     bool isTranslate = parser.isSet(translateOption);
+    bool isSki = parser.value(translateOption) == "ski";
+    bool isLambda = parser.value(translateOption) == "lambda";
 
     if ((isFile && isProgram) || (!isFile && !isProgram))
         parser.showHelp(-1);
@@ -58,19 +60,20 @@ int main(int argc, char** argv)
 
         QFileInfo info(file);
         program = file.readAll();
+        isSki = info.suffix() == "ski";
+        isLambda = info.suffix() == "lambda";
     } else if (isProgram) {
         program = parser.value(programOption);
     }
 
-    if (isTranslate) {
-        QString translate = parser.value(translateOption);
-        if (translate == "ski")
-            program = Ski::fromSki(program);
-        else if (translate == "lambda")
-            program = Lambda::fromLambda(program);
-        else
-            parser.showHelp(-1);
+    if (isSki)
+        program = Ski::fromSki(program);
+    else if (isLambda)
+        program = Lambda::fromLambda(program);
 
+    if (isTranslate) {
+        if (!isSki && !isLambda)
+            parser.showHelp(-1);
         printf("%s\n", qPrintable(program));
         return EXIT_SUCCESS;
     }
