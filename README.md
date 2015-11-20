@@ -23,5 +23,5 @@ transcompiles the untyped Lambda Calclulus into the SKI calculus, including
 
 Another feature is verbose mode which shows the full evaluation cycle in
 colorized terminal output.  Combined with a good debugger, verbose mode can
-reveal the entire combinator application loop by stepping through with
+reveal the entire combinator application execution by stepping through with
 breakpoints in the eval/apply cycle.
