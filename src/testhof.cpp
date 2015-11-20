@@ -118,6 +118,10 @@ QString runHof(const QString& program,
 #define Y(X) "SAKAASIIAASAASAKSKAKAASII" X
 #define Y1(X) "SSKAASAKAASSASAASSKK" X
 
+// standard beta recursion combinator
+#define BETA(X) "SAK" X "AASII"
+#define BETA_RECURSE(X) BETA(X) "AA" BETA(X)
+
 // while loop
 #define WHILE(COND, OPERATION, INITIAL) "AASAKASAKAASAKAASIIAASAASAKSKAKAASIIAASAASAKSAASAKASAKSAASAKASAKASAKSAASAASAKSAASAKASAKSAASAKASAKASAKSAASAASAKSAASAKKAASAKSAASAKKSAKAASAKASAKASAKKAASAKASAASAKSKKAKAKAKKAKAKAKAKAKI" COND OPERATION INITIAL
 
@@ -257,7 +261,7 @@ void TestHof::testY()
     QVERIFY(ok);
 }
 
-bool testYBenchmarkImplemented()
+bool testYBenchmarkImplemented(QElapsedTimer* timer)
 {
     QDir bin(QCoreApplication::applicationDirPath());
 
@@ -279,6 +283,7 @@ bool testYBenchmarkImplemented()
 
     static qint64 total = 1000;
     qint64 totalRead = 0;
+    bool timerStart = false;
     while (hof.waitForReadyRead() && totalRead < total) {
         qint64 bytesAvailable = hof.bytesAvailable();
         qint64 remaining = qMin(total - totalRead, bytesAvailable);
@@ -287,6 +292,12 @@ bool testYBenchmarkImplemented()
         for (qint64 i = 0; i < size; ++i) {
             if (output.at(i) != 'I')
                 return false;
+
+            if (!timerStart && totalRead > 1) {
+                timer->start();
+                timerStart = true;
+            }
+
             totalRead++;
         }
     }
@@ -303,8 +314,7 @@ void TestHof::testYBenchmark()
 
     for (int i = 0; i < iterations; ++i) {
         QElapsedTimer timer;
-        timer.start();
-        testYBenchmarkImplemented();
+        testYBenchmarkImplemented(&timer);
         results.append(timer.elapsed());
     }
 
