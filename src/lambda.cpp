@@ -12,9 +12,21 @@ public:
         Dot,
         Variable,
         LParen,
-        RParen,
-        Space
+        RParen
     };
+
+    static QString typeToString(Type type)
+    {
+        switch (type) {
+        case None: return QStringLiteral("None");
+        case Lambda: return QStringLiteral("Lambda");
+        case Dot: return QStringLiteral("Dot");
+        case Variable: return QStringLiteral("Variable");
+        case LParen: return QStringLiteral("LParen");
+        case RParen: return QStringLiteral("RParen");
+        default: return QString();
+        }
+    }
 
     Token() : m_type(None) { }
     Token(Type t, QChar c) : m_type(t), m_char(c) { }
@@ -23,16 +35,7 @@ public:
     QChar character() const { return m_char; }
     QString toString() const
     {
-        QString r;
-        switch (m_type) {
-        case None: r = QStringLiteral("None"); break;
-        case Lambda: r = QStringLiteral("Lambda"); break;
-        case Dot: r = QStringLiteral("Dot"); break;
-        case Variable: r = QStringLiteral("Variable"); break;
-        case LParen: r = QStringLiteral("LParen"); break;
-        case RParen: r = QStringLiteral("RParen"); break;
-        case Space: r = QStringLiteral("Space"); break;
-        }
+        QString r = typeToString(m_type);
         return r + ": '" + (m_char.isNull() ? QString("\\0") : m_char) + "'";
     }
 
@@ -220,7 +223,7 @@ private:
     LambdaAbstraction* parseLambdaAbstraction();
     LambdaApplication* parseLambdaApplication();
 
-    void error();
+    void error(Token::Type type = Token::None);
 
     QStringList m_errors;
     QList<LambdaTerm*> m_terms;
@@ -230,17 +233,22 @@ private:
 
 QString Lambda::fromLambda(const QString& string)
 {
+    // Remove all whitespace
+    QString program = string;
+    program = program.simplified();
+    program.replace("\n", "");
+    program.replace(" ", "");
+
     // Lexer
     QList<Token> tokens;
-    for (int x = 0; x < string.length(); x++) {
-        QChar ch = string.at(x);
+    for (int x = 0; x < program.length(); x++) {
+        QChar ch = program.at(x);
         Token::Type t;
         switch (ch.unicode()) {
         case LAMBDA: t = Token::Lambda; break;
         case DOT: t = Token::Dot; break;
         case '(': t = Token::LParen; break;
         case ')': t = Token::RParen; break;
-        case ' ': t = Token::Space; break;
         default: t = Token::Variable; break;
         };
         tokens.append(Token(t, ch));
@@ -250,8 +258,10 @@ QString Lambda::fromLambda(const QString& string)
     parser.parse();
 
     QStringList errors = parser.errors();
-    if (!errors.isEmpty())
-        return errors.join("\n");
+    if (!errors.isEmpty()) {
+        QString error = "Found errors while parsing: " + program;
+        return error + errors.join("\n");
+    }
 
     QString out;
     QList<LambdaTerm*> terms = parser.terms();
@@ -304,7 +314,7 @@ bool LambdaParser::expect(Token token, Token::Type type)
     if (token.type() == type)
         return true;
 
-    error();
+    error(type);
     return false;
 }
 
@@ -361,12 +371,6 @@ LambdaApplication* LambdaParser::parseLambdaApplication()
     if (!left)
         return 0;
 
-    Token space = advance(1);
-    if (!expect(space, Token::Space)) {
-        delete left;
-        return 0;
-    }
-
     advance(1);
     LambdaTerm* right = parseLambdaTerm();
     if (!right)
@@ -385,9 +389,16 @@ LambdaApplication* LambdaParser::parseLambdaApplication()
     return a;
 }
 
-void LambdaParser::error()
+void LambdaParser::error(Token::Type expected)
 {
-    m_errors.append(QString("Unexpected token: {%1} at index: %2")
-                    .arg(current().toString())
-                    .arg(m_index));
+    if (expected != Token::None) {
+        m_errors.append(QString("Expected: {%1}, found: {%2} at index: %3")
+                      .arg(Token::typeToString(expected))
+                      .arg(current().toString())
+                      .arg(m_index));
+    } else {
+        m_errors.append(QString("Unexpected token: {%1} at index: %2")
+                        .arg(current().toString())
+                        .arg(m_index));
+    }
 }

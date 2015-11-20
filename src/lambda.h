@@ -12,7 +12,7 @@ public:
      * Lambda expressions are defined as follows:
      *   1) variables v1, v2, ..., vn, ...
      *   2) the abstraction symbols lambda 'λ' and dot '.'
-     *   3) the application symbols parenthesis '(', ')' and space ' '
+     *   3) the application symbols parenthesis '(', ')'
      *
      * The set of lambda expressions, Λ, can be defined inductively:
      *   1) If x is a variable, then x is in Λ
@@ -24,8 +24,9 @@ public:
      * Instances of rule #2 are known as lambda abstractions.
      * Instances of rule #3 are known as lambda applications.
      *
-     * Notation is strict and application requires parenthesis and space while
-     * nested abstraction requires lambda and dot.
+     * Notation is strict and application requires parenthesis while
+     * nested abstraction requires lambda and dot.  Variables are restricted to
+     * single characters.
      */
     static QString fromLambda(const QString& lambda);
 };

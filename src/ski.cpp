@@ -98,10 +98,7 @@ QString Ski::fromSki(const QString& string)
         case 'k': term = new SkiTerm('K'); break;
         case 'I':
         case 'i': term = new SkiTerm('I'); break;
-        default:
-            QString error = QString("Error: from ski to hof! ch=`%1`").arg(ch);
-            Q_ASSERT_X(false, "translate", qPrintable(error));
-            return error;
+        default: term = new SkiTerm(ch); break;
         };
 
         if (subTerm)
