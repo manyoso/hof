@@ -406,22 +406,42 @@ void TestHof::testTranslateLambda()
     bool ok = false;
     QString out;
 
-    QString lambdaIdentity = "λx.x";
-    out = runHof(lambdaIdentity, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QString lambdaI = "λx.x";
+    out = runHof(lambdaI, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
     QCOMPARE(out, QString("I"));
     QVERIFY(ok);
 
-    QString lambdaReverser = "λx.λy.(y x)";
+    QString lambdaK = "λx.λy.x";
+    out = runHof(lambdaK, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("K"));
+    QVERIFY(ok);
+
+    QString lambdaS = "λx.λy.λz.xz(yz)";
+    out = runHof(lambdaS, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("S"));
+    QVERIFY(ok);
+
+    QString lambdaFalse = "λx.λy.y";
+    out = runHof(lambdaFalse, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("AKI"));
+    QVERIFY(ok);
+
+    QString lambdaReverser = "λx.λy.yx";
     out = runHof(lambdaReverser, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
     QCOMPARE(out, QString("AASAKASIK"));
     QVERIFY(ok);
 
-    QString lambdaIdentity2 = "λf.λx.(f x)";
-    out = runHof(lambdaIdentity2, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QString lambdaIdentity = "λf.λx.fx";
+    out = runHof(lambdaIdentity, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
     QCOMPARE(out, QString("I"));
     QVERIFY(ok);
 
-    QString pred = "λn.λf.λx.(((n λg.λh.(h (g f))) λt.x) λu.u)";
+    QString lambdaIsZero = "λn.n (λx.λx.λy.y) λx.λy.x";
+    out = runHof(lambdaIsZero, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
+    QCOMPARE(out, QString("AASAASIAKAKAKIAKK"));
+    QVERIFY(ok);
+
+    QString pred = "λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)";
     out = runHof(pred, &ok, false /*verbose*/, 5000 /*timeout*/, Expectation::Normal, "lambda" /*translate*/);
     QCOMPARE(out, QString("AASAASAKSAASAKASAKSAASAASAKSAASAKASAKSAASAKASAKKAASAASAKSKAKAASAKASAKASIAASAKASAKKAASAKASIKAKAKKAKAKAKI"));
     QVERIFY(ok);

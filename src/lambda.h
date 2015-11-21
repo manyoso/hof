@@ -24,9 +24,8 @@ public:
      * Instances of rule #2 are known as lambda abstractions.
      * Instances of rule #3 are known as lambda applications.
      *
-     * Notation is strict and application requires parenthesis while
-     * nested abstraction requires lambda and dot.  Variables are restricted to
-     * single characters.
+     * Variables are restricted to single characters. Parenthesis is not
+     * strictly required for lambda application.  Whitespace is ignored.
      */
     static QString fromLambda(const QString& lambda);
 };

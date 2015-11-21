@@ -218,6 +218,7 @@ private:
     Token look(int i) const;
     bool expect(Token tok, Token::Type type);
 
+    LambdaTerm* parseLambdaTermOrApplication();
     LambdaTerm* parseLambdaTerm();
     LambdaVariable* parseLambdaVariable();
     LambdaAbstraction* parseLambdaAbstraction();
@@ -282,7 +283,7 @@ void LambdaParser::parse()
 
     while (m_index < m_tokens.length() - 1) {
         advance(1);
-        LambdaTerm* term = parseLambdaTerm();
+        LambdaTerm* term = parseLambdaTermOrApplication();
         if (term)
             m_terms.append(term);
     }
@@ -318,14 +319,50 @@ bool LambdaParser::expect(Token token, Token::Type type)
     return false;
 }
 
+LambdaTerm* LambdaParser::parseLambdaTermOrApplication()
+{
+    LambdaTerm* term = parseLambdaTerm();
+    if (!term)
+        return 0;
+
+    Token ahead = look(1);
+    while (ahead.type() == Token::Variable ||
+           ahead.type() == Token::Lambda ||
+           ahead.type() == Token::LParen) {
+
+        advance(1);
+        LambdaTerm* right = parseLambdaTerm();
+        if (!right) break;
+
+        LambdaApplication* a = new LambdaApplication;
+        a->left = term;
+        a->right = right;
+        term = a;
+        ahead = look(1);
+    }
+
+    return term;
+}
+
 LambdaTerm* LambdaParser::parseLambdaTerm()
 {
     switch (current().type()) {
     case Token::Variable: return parseLambdaVariable();
     case Token::Lambda: return parseLambdaAbstraction();
-    case Token::LParen: return parseLambdaApplication();
+    case Token::LParen:
+        {
+            advance(1);
+            LambdaTerm* term = parseLambdaTermOrApplication();
+            Token token = advance(1);
+            if (!expect(token, Token::RParen)) {
+                delete term;
+                return 0;
+            }
+            return term;
+        }
     default: error(); break;
     }
+
     return 0;
 }
 
@@ -353,39 +390,13 @@ LambdaAbstraction* LambdaParser::parseLambdaAbstraction()
         return 0;
 
     advance(1);
-    LambdaTerm* body = parseLambdaTerm();
+    LambdaTerm* body = parseLambdaTermOrApplication();
     if (!body)
         return 0;
 
     LambdaAbstraction* a = new LambdaAbstraction;
     a->variable = variable;
     a->body = body;
-    return a;
-}
-
-LambdaApplication* LambdaParser::parseLambdaApplication()
-{
-    advance(1);
-
-    LambdaTerm* left = parseLambdaTerm();
-    if (!left)
-        return 0;
-
-    advance(1);
-    LambdaTerm* right = parseLambdaTerm();
-    if (!right)
-        return 0;
-
-    Token close = advance(1);
-    if (!expect(close, Token::RParen)) {
-        delete left;
-        delete right;
-        return 0;
-    }
-
-    LambdaApplication* a = new LambdaApplication;
-    a->left = left;
-    a->right = right;
     return a;
 }
 
