@@ -65,9 +65,9 @@ struct Substitution : LambdaTerm {
     virtual LambdaTerm* toSki() { return this; }
 };
 
-struct Combinator : LambdaTerm {
+struct LambdaCombinator : LambdaTerm {
     QString ski;
-    Combinator(const QString& s) : ski(s) {}
+    LambdaCombinator(const QString& s) : ski(s) {}
     virtual Type type() const { return Ski; }
     virtual QString toString() const  { return ski; }
     virtual LambdaTerm* toSki() { return this; }
@@ -168,14 +168,14 @@ struct LambdaAbstraction : LambdaTerm {
         // rule #3
         if (!isFree()) {
             LambdaApplication* a = new LambdaApplication;
-            a->left = new Combinator("K");
+            a->left = new LambdaCombinator("K");
             a->right = body->toSki();
             return a;
         }
 
         // rule #4
         if (body->type() == Variable && variable->toString() == body->toString())
-            return new Combinator("I");
+            return new LambdaCombinator("I");
 
         // rule #5
         if (body->type() == Abstraction && isFree()) {
@@ -193,7 +193,7 @@ struct LambdaAbstraction : LambdaTerm {
             leftA->body = a->left;
 
             LambdaApplication* leftApp = new LambdaApplication;
-            leftApp->left = new Combinator("S");
+            leftApp->left = new LambdaCombinator("S");
             leftApp->right = leftA;
 
             LambdaAbstraction* rightA = new LambdaAbstraction;
