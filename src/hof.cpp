@@ -400,7 +400,7 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
         << prefix()
         << apply
         << postfix()
-#if 0
+#if 1
         << "\t" << "depth: " << evaluationDepth
         << ", " << (cached ? "cached: true" : "cached: false")
 #endif
@@ -543,8 +543,15 @@ private:
 
 void EvaluationCache::insert(const QString& key, const TermPtr& value)
 {
+    if (m_cache.contains(key) || key == value->toString())
+        return;
+
+    TermPtr v = value;
+    while (m_cache.contains(v->toString()))
+        v = m_cache.value(v->toString());
+
     if (!m_cache.contains(key))
-        m_cache.insert(key, value);
+        m_cache.insert(key, v);
 }
 
 TermPtr EvaluationCache::result(const QString& key) const
