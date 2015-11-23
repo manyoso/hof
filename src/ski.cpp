@@ -3,17 +3,18 @@
 class SkiTerm {
 public:
     SkiTerm() { }
-    SkiTerm(const QChar& c) { ch = c; }
+    SkiTerm(const QString& s) { str = s; }
     virtual ~SkiTerm() { }
-    virtual QString toHof() const { return QString(ch); }
-    virtual bool isWellFormed() const { return !ch.isNull(); }
-    QChar ch;
+    virtual QString toHof() const { return str; }
+    virtual bool isWellFormed() const { return !str.isEmpty(); }
+    virtual bool isSubTerm() const { return false; }
+    QString str;
 };
 
 class SkiSubTerm : public SkiTerm {
 public:
     SkiSubTerm()
-        : SkiTerm('A'),
+        : SkiTerm("A"),
         m_subTerm(0),
         m_closed(false) { }
 
@@ -40,6 +41,8 @@ public:
         return m_closed && m_terms.count() >= 2 && !m_subTerm;
     }
 
+    virtual bool isSubTerm() const { return true; }
+
     bool isClosed() const
     {
         return m_closed;
@@ -49,7 +52,7 @@ public:
     {
         if (m_subTerm)
             m_subTerm->addTerm(term);
-        else if (term->ch == 'A')
+        else if (term->isSubTerm())
             m_subTerm = static_cast<SkiSubTerm*>(term);
         else
             m_terms.append(term);
@@ -76,11 +79,19 @@ private:
 
 QString Ski::fromSki(const QString& string)
 {
+    bool isSub = false;
+    QString sub = QString();
     SkiSubTerm* subTerm = 0;
     QList<SkiTerm*> terms;
     for (int x = 0; x < string.length(); x++) {
         SkiTerm* term = 0;
         QChar ch = string.at(x);
+
+        if (isSub && ch != '}') {
+            sub.append(ch);
+            continue;
+        }
+
         switch (ch.unicode()) {
         case '(': term = new SkiSubTerm; break;
         case ')':
@@ -93,17 +104,24 @@ QString Ski::fromSki(const QString& string)
                 continue;
             }
         case 'S':
-        case 's': term = new SkiTerm('S'); break;
+        case 's': term = new SkiTerm("S"); break;
         case 'K':
-        case 'k': term = new SkiTerm('K'); break;
+        case 'k': term = new SkiTerm("K"); break;
         case 'I':
-        case 'i': term = new SkiTerm('I'); break;
+        case 'i': term = new SkiTerm("I"); break;
+        case '{': isSub = true; continue;
+        case '}':
+          {
+              term = new SkiTerm(sub);
+              isSub = false;
+              break;
+          }
         default: term = new SkiTerm(ch); break;
         };
 
         if (subTerm)
             subTerm->addTerm(term);
-        else if (term->ch == 'A')
+        else if (term->isSubTerm())
             subTerm = static_cast<SkiSubTerm*>(term);
         else
             terms.append(term);

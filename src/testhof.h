@@ -1,3 +1,6 @@
+#ifndef testhof_h
+#define testhof_h
+
 #include <QtTest/QtTest>
 
 class TestHof: public QObject {
@@ -14,4 +17,7 @@ private slots:
     void testHofNoise();
     void testTranslateSki();
     void testTranslateLambda();
+    void testExamples();
 };
+
+#endif // testhof_h

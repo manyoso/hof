@@ -11,8 +11,8 @@ int main(int argc, char* argv[])
     app.setApplicationName(_NAME_);
 
     int rc = 0;
-    TestHof test;
-    rc = QTest::qExec(&test, argc, argv) == 0 ? rc : -1;
+    TestHof hof;
+    rc = QTest::qExec(&hof, argc, argv) == 0 ? rc : -1;
 
     return rc;
 }

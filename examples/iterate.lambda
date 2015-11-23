@@ -1,0 +1,1 @@
+(λf.(λx.f (x x)) (λx.f (x x)))(λi.λx.((λn.n (λx.λx.λy.y) λx.λy.x) x) (x) ({API} i((λn.λf.λx.n (λg.λh.h (g f)) (λu.x) (λu.u)) x)))

@@ -12,7 +12,8 @@ public:
         Dot,
         Variable,
         LParen,
-        RParen
+        RParen,
+        Sub
     };
 
     static QString typeToString(Type type)
@@ -24,28 +25,29 @@ public:
         case Variable: return QStringLiteral("Variable");
         case LParen: return QStringLiteral("LParen");
         case RParen: return QStringLiteral("RParen");
+        case Sub: return QStringLiteral("Sub");
         default: return QString();
         }
     }
 
     Token() : m_type(None) { }
-    Token(Type t, QChar c) : m_type(t), m_char(c) { }
+    Token(Type t, const QString s) : m_type(t), m_token(s) { }
 
     Type type() const { return m_type; }
-    QChar character() const { return m_char; }
+    QString token() const { return m_token; }
     QString toString() const
     {
         QString r = typeToString(m_type);
-        return r + ": '" + (m_char.isNull() ? QString("\\0") : m_char) + "'";
+        return r + ": '" + (m_token.isEmpty() ? QString("\\0") : m_token) + "'";
     }
 
 private:
     Type m_type;
-    QChar m_char;
+    QString m_token;
 };
 
 struct LambdaTerm {
-    enum Type { Variable, Abstraction, Application, Ski };
+    enum Type { Variable, Abstraction, Application, Ski, Sub };
     virtual ~LambdaTerm() { }
     virtual Type type() const = 0;
     virtual QString toString() const  = 0;
@@ -55,9 +57,17 @@ struct LambdaTerm {
     virtual LambdaTerm* toSki() = 0;
 };
 
+struct Substitution : LambdaTerm {
+    QString sub;
+    Substitution(const QString& s) : sub(s) {}
+    virtual Type type() const { return Sub; }
+    virtual QString toString() const  { return "{" + sub + "}"; }
+    virtual LambdaTerm* toSki() { return this; }
+};
+
 struct Combinator : LambdaTerm {
-    QChar ski;
-    Combinator(const QChar& ch) : ski(ch) {}
+    QString ski;
+    Combinator(const QString& s) : ski(s) {}
     virtual Type type() const { return Ski; }
     virtual QString toString() const  { return ski; }
     virtual LambdaTerm* toSki() { return this; }
@@ -70,7 +80,7 @@ struct LambdaVariable : LambdaTerm {
 
     virtual QString toString() const
     {
-        return token.character();
+        return token.token();
     }
 
     virtual LambdaTerm* toSki()
@@ -158,14 +168,14 @@ struct LambdaAbstraction : LambdaTerm {
         // rule #3
         if (!isFree()) {
             LambdaApplication* a = new LambdaApplication;
-            a->left = new Combinator('K');
+            a->left = new Combinator("K");
             a->right = body->toSki();
             return a;
         }
 
         // rule #4
         if (body->type() == Variable && variable->toString() == body->toString())
-            return new Combinator('I');
+            return new Combinator("I");
 
         // rule #5
         if (body->type() == Abstraction && isFree()) {
@@ -183,7 +193,7 @@ struct LambdaAbstraction : LambdaTerm {
             leftA->body = a->left;
 
             LambdaApplication* leftApp = new LambdaApplication;
-            leftApp->left = new Combinator('S');
+            leftApp->left = new Combinator("S");
             leftApp->right = leftA;
 
             LambdaAbstraction* rightA = new LambdaAbstraction;
@@ -240,6 +250,9 @@ QString Lambda::fromLambda(const QString& string)
     program.replace("\n", "");
     program.replace(" ", "");
 
+    bool isSub = false;
+    QString sub = QString();
+
     // Lexer
     QList<Token> tokens;
     for (int x = 0; x < program.length(); x++) {
@@ -250,9 +263,20 @@ QString Lambda::fromLambda(const QString& string)
         case DOT: t = Token::Dot; break;
         case '(': t = Token::LParen; break;
         case ')': t = Token::RParen; break;
+        case '{': isSub = true; continue;
+        case '}':
+          {
+              tokens.append(Token(Token::Sub, sub));
+              isSub = false;
+              continue;
+          }
         default: t = Token::Variable; break;
         };
-        tokens.append(Token(t, ch));
+
+        if (isSub)
+            sub.append(ch);
+        else
+            tokens.append(Token(t, ch));
     }
 
     LambdaParser parser(tokens);
@@ -360,6 +384,7 @@ LambdaTerm* LambdaParser::parseLambdaTerm()
             }
             return term;
         }
+    case Token::Sub: return new Substitution(current().token());
     default: error(); break;
     }
 

@@ -12,4 +12,5 @@ INCLUDEPATH += .
 HEADERS += testhof.h
 
 SOURCES += main_tests.cpp \
-           testhof.cpp
+           testhof.cpp \
+           testexamples.cpp
