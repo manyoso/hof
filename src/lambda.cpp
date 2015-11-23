@@ -242,10 +242,45 @@ private:
     int m_index;
 };
 
+QString makeSubstitutions(const QString& string)
+{
+    QStringList programLines;
+    QStringList lines = string.split("\n");
+    QHash<QString, QString> subMap;
+    foreach (QString line, lines) {
+        QStringList split = line.split("=");
+        if (split.length() == 2) {
+            subMap.insert(split.at(0).trimmed(), split.at(1).trimmed());
+        } else {
+            programLines.append(line);
+        }
+    }
+
+    bool substitution = false;
+    do {
+        substitution = false;
+        for (int i = 0; i < programLines.length(); ++i) {
+            QString line = programLines.at(i);
+            QRegExp rx("\\{(\\w+)\\}");
+            int pos = 0;
+            while ((pos = rx.indexIn(line, pos)) != -1) {
+                pos += rx.matchedLength();
+                if (subMap.contains(rx.cap(1))) {
+                    line.replace(rx.cap(0), subMap.value(rx.cap(1)));
+                    substitution = true;
+                    programLines.replace(i, line);
+                }
+            }
+        }
+    } while(substitution);
+
+    return programLines.join("\n");
+}
+
 QString Lambda::fromLambda(const QString& string)
 {
     // Remove all whitespace
-    QString program = string;
+    QString program = makeSubstitutions(string);
     program = program.simplified();
     program.replace("\n", "");
     program.replace(" ", "");
