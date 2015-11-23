@@ -325,6 +325,7 @@ public:
     }
 
     void generateProgramString(const QString& string, bool replace = false);
+    void generateProgramEnd();
     void generateOutputString();
     void generateOutputStringEnd();
     void generateEvalString(const TermPtr& term1, const TermPtr& term2, int evaluationDepth, bool cached);
@@ -337,6 +338,10 @@ private:
     {
         m_stream = 0;
         m_format = Format::Bash;
+        m_cacheHits = 0;
+        m_cacheMisses = 0;
+        m_depthAchieved = 0;
+        m_longestEvalLine = 0;
     }
 
     QString m_program;
@@ -344,6 +349,10 @@ private:
     QStringList m_postfix;
     QTextStream* m_stream;
     Format m_format;
+    int m_cacheHits;
+    int m_cacheMisses;
+    int m_depthAchieved;
+    int m_longestEvalLine;
 };
 
 void Verbose::generateProgramString(const QString& string, bool replace)
@@ -355,6 +364,20 @@ void Verbose::generateProgramString(const QString& string, bool replace)
     else
         m_program += string;
     *m_stream << PURPLE(m_format) << m_program << "\n" << RESET(m_format);
+    print();
+}
+
+void Verbose::generateProgramEnd()
+{
+    if (!isVerbose())
+        return;
+    *m_stream << PURPLE(m_format) << "end\n" << RESET(m_format);
+    *m_stream << RED(m_format)
+              << "\tcacheHits:" << m_cacheHits << "\n"
+              << "\tcacheMiss:" << m_cacheMisses << "\n"
+              << "\t>depth:" << m_depthAchieved << "\n"
+              << "\t>line:" << m_longestEvalLine << "\n"
+              << RESET(m_format);
     print();
 }
 
@@ -396,11 +419,22 @@ void Verbose::generateEvalString(const TermPtr& term1, const TermPtr& term2, int
     Q_UNUSED(evaluationDepth);
     Q_UNUSED(cached);
 
+    if (cached)
+        m_cacheHits++;
+    else
+        m_cacheMisses++;
+
+    if (evaluationDepth > m_depthAchieved)
+        m_depthAchieved = evaluationDepth;
+
+    if (apply.length() > m_longestEvalLine)
+        m_longestEvalLine = apply.length();
+
     *m_stream << "  "
         << prefix()
         << apply
         << postfix()
-#if 1
+#if 0
         << "\t" << "depth: " << evaluationDepth
         << ", " << (cached ? "cached: true" : "cached: false")
 #endif
@@ -823,9 +857,13 @@ TermPtr A::apply() const
     Q_ASSERT(isWellFormed());
     if (isThunk)
         return eval(left, right);
-    SubEval subEval;
-    subEval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
-    return eval(left, right);
+
+    if (Verbose::instance()->isVerbose()) {
+        SubEval subEval;
+        subEval.addPrefix(BLUE() + QStringLiteral("A") + RESET());
+        return eval(left, right);
+    } else
+        return eval(left, right);
 }
 
 TermPtr A::apply(const TermPtr& x) const
@@ -835,9 +873,12 @@ TermPtr A::apply(const TermPtr& x) const
 
     TermPtr evaluate;
     {
-        SubEval subEval;
-        subEval.addPostfix(x->toString());
-        evaluate = apply();
+        if (Verbose::instance()->isVerbose()) {
+            SubEval subEval;
+            subEval.addPostfix(x->toString());
+            evaluate = apply();
+        } else
+            evaluate = apply();
     }
     return eval(evaluate, x);
 }
@@ -907,18 +948,24 @@ void cppInterpreter(const QString& string)
         if (!evaluationListIsWellFormed(evaluationList))
             continue;
 
-        Verbose::instance()->removePostfix(postfixIndex);
-        postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
-
-        SubEval subEval;
-        subEval.addPostfix(!term.isNull() ? term->toString() : QString());
-
         TermPtr evaluate = evaluationList.takeFirst();
-        EvaluationList::const_iterator it = evaluationList.begin();
-        for (; it != evaluationList.end(); ++it)
-            evaluate = eval(evaluate, *it);
+        if (Verbose::instance()->isVerbose()) {
+            Verbose::instance()->removePostfix(postfixIndex);
+            postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
 
-        subEval.clear();
+            SubEval subEval;
+            subEval.addPostfix(!term.isNull() ? term->toString() : QString());
+
+            EvaluationList::const_iterator it = evaluationList.begin();
+            for (; it != evaluationList.end(); ++it)
+                evaluate = eval(evaluate, *it);
+
+            subEval.clear();
+        } else {
+            EvaluationList::const_iterator it = evaluationList.begin();
+            for (; it != evaluationList.end(); ++it)
+                evaluate = eval(evaluate, *it);
+        }
 
         if (!term.isNull())
             evaluate = eval(evaluate, term);
@@ -937,7 +984,7 @@ void cppInterpreter(const QString& string)
     TermPtr evaluate = evaluationList.takeFirst();
     Verbose::instance()->generateReturnString(evaluate);
     Verbose::instance()->generateInputString(evaluationList);
-    Verbose::instance()->generateProgramString("end", true /*replace*/);
+    Verbose::instance()->generateProgramEnd();
 }
 
 Hof::Hof(QTextStream* outputStream, QTextStream* verboseStream)
