@@ -81,8 +81,6 @@ void cppInterpreter(const QString& string)
             EvaluationList::const_iterator it = evaluationList.begin();
             for (; it != evaluationList.end(); ++it)
                 evaluate = eval(evaluate, *it);
-
-            subEval.clear();
         } else {
             EvaluationList::const_iterator it = evaluationList.begin();
             for (; it != evaluationList.end(); ++it)
