@@ -13,6 +13,8 @@ CombinatorPtr k();
 CombinatorPtr s();
 CombinatorPtr p();
 CombinatorPtr r();
+CombinatorPtr b();
+CombinatorPtr c();
 
 // general evaluation function
 CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right);
@@ -24,7 +26,7 @@ enum OutputFormat {
 
 class Combinator {
 public:
-    enum Type { i_, k_, s_, p_, r_, a_, capture_ };
+    enum Type { i_, k_, s_, p_, r_, a_, b_, c_, capture_ };
 
     Combinator() : m_type(Type(-1)) { }
     Combinator(Type t) : m_type(t) { }
@@ -98,6 +100,16 @@ struct A : Combinator {
     CombinatorPtr left;
     CombinatorPtr right;
     bool isThunk;
+};
+
+struct B : Combinator {
+    B() : Combinator(Combinator::b_) { }
+    CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
+};
+
+struct C : Combinator {
+    C() : Combinator(Combinator::c_) { }
+    CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
 };
 
 class SubEval {

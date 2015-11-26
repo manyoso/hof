@@ -52,6 +52,10 @@ CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right)
                   r = static_cast<const R*>(cap->callback.data())->apply(right, left); break;
               case Combinator::s_:
                   r = static_cast<const S*>(cap->callback.data())->apply(right, left); break;
+              case Combinator::b_:
+                  r = static_cast<const B*>(cap->callback.data())->apply(right, left); break;
+              case Combinator::c_:
+                  r = static_cast<const C*>(cap->callback.data())->apply(right, left); break;
               default:
                   {
                       Q_ASSERT(false);
@@ -91,6 +95,8 @@ QString Combinator::typeToString() const
     case p_:  return QStringLiteral("P");
     case r_:  return QStringLiteral("R");
     case a_:  return QStringLiteral("A");
+    case b_:  return QStringLiteral("B");
+    case c_:  return QStringLiteral("C");
     case capture_:
               return QStringLiteral("Capture");
     default:
@@ -103,15 +109,13 @@ QString Combinator::toString() const
 {
     switch(m_type) {
     case i_:
-        return QStringLiteral("I");
     case k_:
-        return QStringLiteral("K");
     case s_:
-        return QStringLiteral("S");
     case p_:
-        return QStringLiteral("P");
     case r_:
-        return QStringLiteral("R");
+    case b_:
+    case c_:
+        return typeToString();
     case a_:
       {
           const A* a = static_cast<const A*>(this);
@@ -142,6 +146,8 @@ QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) cons
     case p_:
     case r_:
     case a_:
+    case b_:
+    case c_:
         return GREEN(f) + toString() + RED(f) + arg->toString() + RESET(f);
     case capture_:
       {
@@ -168,39 +174,151 @@ CombinatorPtr I::apply(const CombinatorPtr& x) const
     return x;
 }
 
-CombinatorPtr K::apply(const CombinatorPtr& arg, CombinatorPtr c) const
+CombinatorPtr K::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
 {
-    if (c.isNull()) {
+    if (capture.isNull()) {
         CombinatorPtr newC(new Capture(k(), 1));
         newC.staticCast<Capture>()->args.append(arg);
         return newC;
     }
 
-    Capture* cap = static_cast<Capture*>(c.data());
+    Capture* cap = static_cast<Capture*>(capture.data());
     Q_ASSERT(cap->args.length() == 1);
     return cap->x();
 }
 
-CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr c) const
+CombinatorPtr B::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
 {
-    if (c.isNull()) {
+    Q_ASSERT(!capture.isNull());
+    Capture* cap = static_cast<Capture*>(capture.data());
+    Q_ASSERT(cap->args.length() == 2);
+    CombinatorPtr x = cap->x();
+    CombinatorPtr y = cap->y();
+    CombinatorPtr z = arg;
+
+    CombinatorPtr first = EvaluationCache::instance()->result(y->toStringApply(z));
+    if (first.isNull()) {
+        A* yz = new A;
+        yz->left = y;
+        yz->right = z;
+        yz->isThunk = true;
+        first = CombinatorPtr(yz);
+    }
+
+    A* evaluate = new A;
+    evaluate->left = x;
+    evaluate->right = first;
+    evaluate->isThunk = true;
+
+    return CombinatorPtr(evaluate);
+}
+
+CombinatorPtr C::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
+{
+    Q_ASSERT(!capture.isNull());
+    Capture* cap = static_cast<Capture*>(capture.data());
+    Q_ASSERT(cap->args.length() == 2);
+    CombinatorPtr x = cap->x();
+    CombinatorPtr y = cap->y();
+    CombinatorPtr z = arg;
+
+    CombinatorPtr first = EvaluationCache::instance()->result(x->toStringApply(z));
+    if (first.isNull()) {
+        A* xz = new A;
+        xz->left = x;
+        xz->right = z;
+        xz->isThunk = true;
+        first = CombinatorPtr(xz);
+    }
+
+    A* evaluate = new A;
+    evaluate->left = first;
+    evaluate->right = y;
+    evaluate->isThunk = true;
+
+    return CombinatorPtr(evaluate);
+}
+
+CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
+{
+    if (capture.isNull()) {
         CombinatorPtr newC(new Capture(s(), 1));
         newC.staticCast<Capture>()->args.append(arg);
         return newC;
     }
 
-    Capture* cap = static_cast<Capture*>(c.data());
+    Capture* cap = static_cast<Capture*>(capture.data());
     Q_ASSERT(cap->args.length() >= 1);
     CombinatorPtr x = cap->x();
     if (cap->args.length() == 1) {
-        // identity optimization...
+        /*
+         * Various optimizations taken from the paper, "Another Algorithm for
+         * Bracket Abstraction" by D. A. Turner and "The Implementation of
+         * Functional Programming Languages" by Simon L. Peyton Jones.
+         */
+
+        /* identity optimization: SKx -> I */
         if (x->type() == Combinator::k_) {
-            Verbose::instance()->generateReplacementString(c, i());
+            Verbose::instance()->generateReplacementString(capture, i());
             return i();
         }
+
         cap->argsToCapture = 2; // capture one more...
         cap->append(arg);
-        return c;
+
+        CombinatorPtr y = cap->y();
+
+        if (x->type() == Combinator::a_) {
+            A* aX = static_cast<A*>(x.data());
+            if (aX->left->type() == Combinator::k_) {
+
+                /* k optimization: SAKpAKq -> KApq */
+                if (y->type() == Combinator::a_) {
+                    A* aY = static_cast<A*>(y.data());
+                    if (aY->left->type() == Combinator::k_) {
+
+                        A* pq = new A;
+                        pq->left = aX->right;
+                        pq->right = aY->right;
+
+                        CombinatorPtr newC(new Capture(k(), 1));
+                        newC.staticCast<Capture>()->args.append(CombinatorPtr(pq));
+
+                        Verbose::instance()->generateReplacementString(capture, newC);
+                        return newC;
+                    }
+                }
+
+                /* b optimization: SAKxy -> Bxy*/
+                /* special b optimization */
+                if (y->type() == Combinator::i_) {
+                    Verbose::instance()->generateReplacementString(capture, aX->right);
+                    return aX->right;
+                }
+
+                CombinatorPtr newC(new Capture(b(), 2));
+                newC.staticCast<Capture>()->args.append(aX->right);
+                newC.staticCast<Capture>()->args.append(y);
+
+                Verbose::instance()->generateReplacementString(capture, newC);
+                return newC;
+            }
+        }
+
+        /* c optimization: SxAKy -> Cxy*/
+        if (y->type() == Combinator::a_) {
+            A* aY = static_cast<A*>(y.data());
+            if (aY->left->type() == Combinator::k_) {
+                CombinatorPtr newC(new Capture(c(), 2));
+                newC.staticCast<Capture>()->args.append(x);
+                newC.staticCast<Capture>()->args.append(aY->right);
+
+                Verbose::instance()->generateReplacementString(capture, newC);
+                return newC;
+            }
+        }
+
+        return capture;
     }
 
     Q_ASSERT(cap->args.length() == 2);
@@ -282,15 +400,15 @@ private:
     std::bernoulli_distribution* m_dist;
 };
 
-CombinatorPtr R::apply(const CombinatorPtr& arg, CombinatorPtr c) const
+CombinatorPtr R::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
 {
-    if (c.isNull()) {
+    if (capture.isNull()) {
         CombinatorPtr newC(new Capture(r(), 1));
         newC.staticCast<Capture>()->args.append(arg);
         return newC;
     }
 
-    Capture* cap = static_cast<Capture*>(c.data());
+    Capture* cap = static_cast<Capture*>(capture.data());
     Q_ASSERT(cap->args.length() == 1);
     return Random::instance()->boolean() ? cap->x() : arg /*y*/;
 }
@@ -375,11 +493,11 @@ CombinatorPtr A::apply(const CombinatorPtr& x) const
     return eval(evaluate, x);
 }
 
-void Capture::append(const CombinatorPtr& c)
+void Capture::append(const CombinatorPtr& arg)
 {
     Q_ASSERT(args.length() < argsToCapture);
-    Q_ASSERT(c.data() != this);
-    args.append(c);
+    Q_ASSERT(arg.data() != this);
+    args.append(arg);
 }
 
 CombinatorPtr i()
@@ -419,6 +537,22 @@ CombinatorPtr r()
     static CombinatorPtr s_instance;
     if (!s_instance)
         s_instance = CombinatorPtr(new R);
+    return s_instance;
+}
+
+CombinatorPtr b()
+{
+    static CombinatorPtr s_instance;
+    if (!s_instance)
+        s_instance = CombinatorPtr(new B);
+    return s_instance;
+}
+
+CombinatorPtr c()
+{
+    static CombinatorPtr s_instance;
+    if (!s_instance)
+        s_instance = CombinatorPtr(new C);
     return s_instance;
 }
 
