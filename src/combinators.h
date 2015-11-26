@@ -3,8 +3,6 @@
 
 #include <QtCore>
 
-#define LAZY_EVALUATION 1
-
 class Combinator;
 typedef QSharedPointer<Combinator> CombinatorPtr;
 typedef QList<CombinatorPtr> EvaluationList;
@@ -26,18 +24,37 @@ enum OutputFormat {
 
 class Combinator {
 public:
-    enum Type { i_, k_, k1_, s_, s1_, s2_, p_, r_, r1_, a_};
+    enum Type { i_, k_, s_, p_, r_, a_, capture_ };
 
     Combinator() : m_type(Type(-1)) { }
     Combinator(Type t) : m_type(t) { }
-    virtual ~Combinator() { }
+    ~Combinator() { }
     Type type() const { return m_type; }
+    CombinatorPtr apply(const CombinatorPtr& x) const;
     QString toString() const;
     QString toStringApply(const CombinatorPtr& arg, OutputFormat f = None) const;
     QString typeToString() const;
 
 private:
     Type m_type;
+};
+
+struct Capture : Combinator {
+    Capture(const CombinatorPtr& c, int args)
+        : Combinator(Combinator::capture_)
+        , callback(c)
+        , argsToCapture(args) { }
+
+    bool isFull() const { return argsToCapture == args.length(); }
+    void append(const CombinatorPtr& c);
+    QList<CombinatorPtr> args;
+    CombinatorPtr callback;
+    int argsToCapture;
+
+    CombinatorPtr x() const { Q_ASSERT(args.length() >= 1); return args.at(0); }
+    CombinatorPtr y() const { Q_ASSERT(args.length() >= 2); return args.at(1); }
+    CombinatorPtr z() const { Q_ASSERT(args.length() >= 3); return args.at(2); }
+    CombinatorPtr k() const { Q_ASSERT(args.length() == 4); return args.at(3); }
 };
 
 struct I : Combinator {
@@ -47,28 +64,12 @@ struct I : Combinator {
 
 struct K : Combinator {
     K() : Combinator(Combinator::k_) { }
-    struct K1 : Combinator {
-        K1() : Combinator(Combinator::k1_) { }
-        CombinatorPtr apply(const CombinatorPtr& /*y*/) const;
-        CombinatorPtr x;
-    };
-    CombinatorPtr apply(const CombinatorPtr& x) const;
+    CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
 };
 
 struct S : Combinator {
     S() : Combinator(Combinator::s_) { }
-    struct S1 : Combinator {
-        S1() : Combinator(Combinator::s1_) { }
-        struct S2 : Combinator {
-            S2() : Combinator(Combinator::s2_) { }
-            CombinatorPtr apply(const CombinatorPtr& z) const;
-            CombinatorPtr x;
-            CombinatorPtr y;
-        };
-        CombinatorPtr x;
-        CombinatorPtr apply(const CombinatorPtr& y) const;
-    };
-    CombinatorPtr apply(const CombinatorPtr& x) const;
+    CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
 };
 
 class P : public Combinator {
@@ -82,12 +83,7 @@ private:
 
 struct R : Combinator {
     R() : Combinator(Combinator::r_) { }
-    struct R1 : Combinator {
-        R1() : Combinator(Combinator::r1_) { }
-        CombinatorPtr apply(const CombinatorPtr& y) const;
-        CombinatorPtr x;
-    };
-    CombinatorPtr apply(const CombinatorPtr& x) const;
+    CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
 };
 
 struct A : Combinator {
@@ -103,8 +99,6 @@ struct A : Combinator {
     CombinatorPtr right;
     bool isThunk;
 };
-
-// optimizing combinators
 
 class SubEval {
 public:

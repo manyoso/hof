@@ -30,22 +30,38 @@ CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right)
         r = static_cast<const I*>(left.data())->apply(right); break;
     case Combinator::k_:
         r = static_cast<const K*>(left.data())->apply(right); break;
-    case Combinator::k1_:
-        r = static_cast<const K::K1*>(left.data())->apply(right); break;
     case Combinator::s_:
         r = static_cast<const S*>(left.data())->apply(right); break;
-    case Combinator::s1_:
-        r = static_cast<const S::S1*>(left.data())->apply(right); break;
-    case Combinator::s2_:
-        r = static_cast<const S::S1::S2*>(left.data())->apply(right); break;
     case Combinator::p_:
         r = static_cast<const P*>(left.data())->apply(right); break;
     case Combinator::r_:
         r = static_cast<const R*>(left.data())->apply(right); break;
-    case Combinator::r1_:
-        r = static_cast<const R::R1*>(left.data())->apply(right); break;
     case Combinator::a_:
         r = static_cast<const A*>(left.data())->apply(right); break;
+    case Combinator::capture_:
+      {
+          Capture* cap = static_cast<Capture*>(left.data());
+          if (!cap->isFull()) {
+              cap->append(right);
+              r = left;
+          } else {
+              switch (cap->callback->type()) {
+              case Combinator::k_:
+                  r = static_cast<const K*>(cap->callback.data())->apply(right, left); break;
+              case Combinator::r_:
+                  r = static_cast<const R*>(cap->callback.data())->apply(right, left); break;
+              case Combinator::s_:
+                  r = static_cast<const S*>(cap->callback.data())->apply(right, left); break;
+              default:
+                  {
+                      Q_ASSERT(false);
+                      r = i();
+                      break;
+                  }
+              }
+          }
+          break;
+      }
     default:
         {
             Q_ASSERT(false);
@@ -56,12 +72,12 @@ CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right)
 
     evaluationDepth--;
 
-#if LAZY_EVALUATION
-    if (left->type() != Combinator::p_ && left->type() != Combinator::r_ &&
-       (left->type() != Combinator::a_ || !static_cast<A*>(left.data())->doNotCache())) {
+    if (r->type() != Combinator::capture_ &&
+        left->type() != Combinator::p_ &&
+        left->type() != Combinator::r_ &&
+        (left->type() != Combinator::a_ || !static_cast<A*>(left.data())->doNotCache())) {
         EvaluationCache::instance()->insert(left->toStringApply(right), r);
     }
-#endif
 
     return r;
 }
@@ -71,14 +87,12 @@ QString Combinator::typeToString() const
     switch (m_type) {
     case i_:  return QStringLiteral("I");
     case k_:  return QStringLiteral("K");
-    case k1_: return QStringLiteral("K1");
     case s_:  return QStringLiteral("S");
-    case s1_: return QStringLiteral("S1");
-    case s2_: return QStringLiteral("S2");
     case p_:  return QStringLiteral("P");
     case r_:  return QStringLiteral("R");
-    case r1_: return QStringLiteral("R1");
     case a_:  return QStringLiteral("A");
+    case capture_:
+              return QStringLiteral("Capture");
     default:
         Q_ASSERT(false);
         return QString();
@@ -92,33 +106,26 @@ QString Combinator::toString() const
         return QStringLiteral("I");
     case k_:
         return QStringLiteral("K");
-    case k1_:
-      {
-          return QString("K%1").arg(static_cast<const K::K1*>(this)->x->toString());
-      }
     case s_:
         return QStringLiteral("S");
-    case s1_:
-      {
-          return QString("S%1").arg(static_cast<const S::S1*>(this)->x->toString());
-      }
-    case s2_:
-      {
-          const S::S1::S2* s2 = static_cast<const S::S1::S2*>(this);
-          return QString("S%1%2").arg(s2->x->toString()).arg(s2->y->toString());
-      }
     case p_:
         return QStringLiteral("P");
     case r_:
         return QStringLiteral("R");
-    case r1_:
-          return QString("R%1").arg(static_cast<const R::R1*>(this)->x->toString());
     case a_:
       {
           const A* a = static_cast<const A*>(this);
           return QString("%1%2%3").arg(!a->isThunk ? "A" : QString())
                                   .arg(a->left ? a->left->toString() : QString())
                                   .arg(a->right ? a->right->toString() : QString());
+      }
+    case capture_:
+      {
+          const Capture* cap = static_cast<const Capture*>(this);
+          QString str = cap->callback->toString();
+          foreach (CombinatorPtr ptr, cap->args)
+              str.append(ptr->toString());
+          return str;
       }
     default:
         Q_ASSERT(false);
@@ -136,18 +143,18 @@ QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) cons
     case r_:
     case a_:
         return GREEN(f) + toString() + RED(f) + arg->toString() + RESET(f);
-    case s1_:
-    case k1_:
-    case r1_:
+    case capture_:
       {
+          const Capture* cap = static_cast<const Capture*>(this);
+          int l = cap->argsToCapture;
+          Q_ASSERT(l <= 3);
           QString s = toString();
-          s.insert(1, "₁");
-          return CYAN(f) + s + RED(f) + arg->toString() + RESET(f);
-      }
-    case s2_:
-      {
-          QString s = toString();
-          s.insert(1, "₂");
+          if (l == 1)
+              s.insert(1, "₁");
+          else if (l == 2)
+              s.insert(1, "₂");
+          else
+              s.insert(1, "₃");
           return CYAN(f) + s + RED(f) + arg->toString() + RESET(f);
       }
     default:
@@ -161,44 +168,44 @@ CombinatorPtr I::apply(const CombinatorPtr& x) const
     return x;
 }
 
-CombinatorPtr K::apply(const CombinatorPtr& x) const
+CombinatorPtr K::apply(const CombinatorPtr& arg, CombinatorPtr c) const
 {
-    CombinatorPtr k1(new K1);
-    k1.staticCast<K1>()->x = x;
-    return k1;
-}
-
-CombinatorPtr K::K1::apply(const CombinatorPtr& /*y*/) const
-{
-    return x;
-}
-
-CombinatorPtr S::apply(const CombinatorPtr& x) const
-{
-    CombinatorPtr s1(new S1);
-    s1.staticCast<S1>()->x = x;
-    return s1;
-}
-
-CombinatorPtr S::S1::apply(const CombinatorPtr& y) const
-{
-    if (x->type() == Combinator::k_) {
-        CombinatorPtr s2(new S2);
-        s2.staticCast<S2>()->x = x;
-        s2.staticCast<S2>()->y = y;
-        Verbose::instance()->generateReplacementString(s2, i());
-        return i();
+    if (c.isNull()) {
+        CombinatorPtr newC(new Capture(k(), 1));
+        newC.staticCast<Capture>()->args.append(arg);
+        return newC;
     }
 
-    CombinatorPtr s2(new S2);
-    s2.staticCast<S2>()->x = x;
-    s2.staticCast<S2>()->y = y;
-    return s2;
+    Capture* cap = static_cast<Capture*>(c.data());
+    Q_ASSERT(cap->args.length() == 1);
+    return cap->x();
 }
 
-CombinatorPtr S::S1::S2::apply(const CombinatorPtr& z) const
+CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr c) const
 {
-#if LAZY_EVALUATION
+    if (c.isNull()) {
+        CombinatorPtr newC(new Capture(s(), 1));
+        newC.staticCast<Capture>()->args.append(arg);
+        return newC;
+    }
+
+    Capture* cap = static_cast<Capture*>(c.data());
+    Q_ASSERT(cap->args.length() >= 1);
+    CombinatorPtr x = cap->x();
+    if (cap->args.length() == 1) {
+        // identity optimization...
+        if (x->type() == Combinator::k_) {
+            Verbose::instance()->generateReplacementString(c, i());
+            return i();
+        }
+        cap->argsToCapture = 2; // capture one more...
+        cap->append(arg);
+        return c;
+    }
+
+    Q_ASSERT(cap->args.length() == 2);
+    CombinatorPtr y = cap->y();
+    CombinatorPtr z = arg;
     CombinatorPtr first;
     if (Verbose::instance()->isVerbose()) {
         SubEval subEval;
@@ -222,25 +229,6 @@ CombinatorPtr S::S1::S2::apply(const CombinatorPtr& z) const
     evaluate->isThunk = true;
 
     return CombinatorPtr(evaluate);
-#else
-    CombinatorPtr first;
-    CombinatorPtr second;
-    if (Verbose::instance()->isVerbose()) {
-        SubEval subEval;
-        subEval.addPostfix(y->toString() + z->toString());
-        first = eval(x, z);
-    } else
-        first = eval(x, z);
-
-    if (Verbose::instance()->isVerbose()) {
-        SubEval subEval;
-        subEval.addPrefix(first->toString());
-        second = eval(y, z);
-    } else
-        second = eval(y, z);
-
-    return (eval(first, second));
-#endif
 }
 
 CombinatorPtr P::apply(const CombinatorPtr& x) const
@@ -265,13 +253,6 @@ CombinatorPtr P::apply(const CombinatorPtr& x) const
 void P::setStream(QTextStream* stream)
 {
     m_stream = stream;
-}
-
-CombinatorPtr R::apply(const CombinatorPtr& x) const
-{
-    CombinatorPtr r1(new R1);
-    r1.staticCast<R1>()->x = x;
-    return r1;
 }
 
 class Random {
@@ -301,9 +282,17 @@ private:
     std::bernoulli_distribution* m_dist;
 };
 
-CombinatorPtr R::R1::apply(const CombinatorPtr& y) const
+CombinatorPtr R::apply(const CombinatorPtr& arg, CombinatorPtr c) const
 {
-    return Random::instance()->boolean() ? x : y;
+    if (c.isNull()) {
+        CombinatorPtr newC(new Capture(r(), 1));
+        newC.staticCast<Capture>()->args.append(arg);
+        return newC;
+    }
+
+    Capture* cap = static_cast<Capture*>(c.data());
+    Q_ASSERT(cap->args.length() == 1);
+    return Random::instance()->boolean() ? cap->x() : arg /*y*/;
 }
 
 bool A::isFull() const
@@ -384,6 +373,13 @@ CombinatorPtr A::apply(const CombinatorPtr& x) const
             evaluate = apply();
     }
     return eval(evaluate, x);
+}
+
+void Capture::append(const CombinatorPtr& c)
+{
+    Q_ASSERT(args.length() < argsToCapture);
+    Q_ASSERT(c.data() != this);
+    args.append(c);
 }
 
 CombinatorPtr i()
