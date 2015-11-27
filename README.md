@@ -15,7 +15,9 @@ Hof is a new language based on the SKI calculus named after Douglas Hofstadter.
                                 terms T₁ and T₂
 
 The interpreter for the language is written in C++ and features lazy evaluations
-implemented with memoized thunks.
+implemented with memoized thunks.  The optimizations found in D. A. Turner's
+paper, "Another Algorithm for Bracket Abstraction" including B, C, S′, B′, C′
+combinators are included.
 
 The interpreter also contains a full Lambda Calculus lexer/parser which
 transcompiles the untyped Lambda Calclulus into the SKI calculus, including
