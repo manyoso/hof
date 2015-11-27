@@ -25,7 +25,7 @@ CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right)
     }
 
     CombinatorPtr r;
-    switch(left->type()) {
+    switch (left->type()) {
     case Combinator::i_:
         r = static_cast<const I*>(left.data())->apply(right); break;
     case Combinator::k_:
@@ -224,11 +224,12 @@ CombinatorPtr C::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
 
     CombinatorPtr first = EvaluationCache::instance()->result(x->toStringApply(z));
     if (first.isNull()) {
-        A* xz = new A;
-        xz->left = x;
-        xz->right = z;
-        xz->isThunk = true;
-        first = CombinatorPtr(xz);
+        if (Verbose::instance()->isVerbose()) {
+            SubEval subEval;
+            subEval.addPostfix(y->toString() + z->toString());
+            first = eval(x, z);
+        } else
+            first = eval(x, z);
     }
 
     A* evaluate = new A;
@@ -324,13 +325,15 @@ CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
     Q_ASSERT(cap->args.length() == 2);
     CombinatorPtr y = cap->y();
     CombinatorPtr z = arg;
-    CombinatorPtr first;
-    if (Verbose::instance()->isVerbose()) {
-        SubEval subEval;
-        subEval.addPostfix(y->toString() + z->toString());
-        first = eval(x, z);
-    } else
-        first = eval(x, z);
+    CombinatorPtr first = EvaluationCache::instance()->result(x->toStringApply(z));
+    if (first.isNull()) {
+        if (Verbose::instance()->isVerbose()) {
+            SubEval subEval;
+            subEval.addPostfix(y->toString() + z->toString());
+            first = eval(x, z);
+        } else
+            first = eval(x, z);
+    }
 
     CombinatorPtr second = EvaluationCache::instance()->result(y->toStringApply(z));
     if (second.isNull()) {
