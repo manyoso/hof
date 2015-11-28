@@ -5,28 +5,18 @@
 #include "colors.h"
 #include "verbose.h"
 
-bool evaluationListIsWellFormed(const EvaluationList& list)
-{
-    EvaluationList::const_iterator it = list.begin();
-    for (; it != list.end(); ++it) {
-        if ((*it)->type() == Combinator::a_)
-            return static_cast<const A*>((*it).data())->isWellFormed();
-    }
-    return true;
-}
-
 void cppInterpreter(const QString& string)
 {
     Verbose::instance()->generateProgramString("program: " + string);
     Verbose::instance()->generateProgramString("begin", true /*replace*/);
-    int postfixIndex = Verbose::instance()->addPostfix(string);
 
     if (string.isEmpty()) {
         Verbose::instance()->generateProgramString("end", true /*replace*/);
         return;
     }
 
-    EvaluationList evaluationList;
+    CombinatorPtr evaluate;
+    CombinatorPtr application;
     for (int x = 0; x < string.length(); x++) {
         CombinatorPtr term;
         QChar ch = string.at(x);
@@ -43,67 +33,38 @@ void cppInterpreter(const QString& string)
             return;
         }
 
-        if (evaluationList.isEmpty()) {
-            evaluationList.append(term);
+        if (application.isNull() && term->type() == Combinator::a_) {
+            application = term;
             continue;
         }
 
-        if (term->type() == Combinator::a_) {
-            if (evaluationList.back()->type() == Combinator::a_) {
-                A* a = static_cast<A*>(evaluationList.back().data());
-                Q_ASSERT(!a->isWellFormed());
-                a->addCombinator(term);
-            } else {
-                evaluationList.append(term);
-            }
-
-            continue; // can't possibly be well formed at this point
-        }
-
-        if (evaluationList.back()->type() == Combinator::a_) {
-            A* a = static_cast<A*>(evaluationList.back().data());
+        if (!application.isNull()) {
+            A* a = static_cast<A*>(application.data());
             Q_ASSERT(!a->isWellFormed());
             a->addCombinator(term);
-            term = CombinatorPtr(); // remove the term since it was added
+            if (!a->isWellFormed())
+                continue;
+
+            term = application;
+            application = CombinatorPtr();
         }
 
-        if (!evaluationListIsWellFormed(evaluationList))
+        if (evaluate.isNull()) {
+            evaluate = term;
             continue;
-
-        CombinatorPtr evaluate = evaluationList.takeFirst();
-        if (Verbose::instance()->isVerbose()) {
-            Verbose::instance()->removePostfix(postfixIndex);
-            postfixIndex = Verbose::instance()->addPostfix(string.right(string.length() - x - 1));
-
-            SubEval subEval;
-            subEval.addPostfix(!term.isNull() ? term->toString() : QString());
-
-            EvaluationList::const_iterator it = evaluationList.begin();
-            for (; it != evaluationList.end(); ++it)
-                evaluate = eval(evaluate, *it);
-        } else {
-            EvaluationList::const_iterator it = evaluationList.begin();
-            for (; it != evaluationList.end(); ++it)
-                evaluate = eval(evaluate, *it);
         }
 
-        if (!term.isNull())
-            evaluate = eval(evaluate, term);
-
-        while (evaluate->type() == Combinator::a_) {
-            A* a = static_cast<A*>(evaluate.data());
-            if (!a->isWellFormed()) { break; }
-            evaluate = a->apply();
-        }
-
-        evaluationList = EvaluationList() << evaluate;
+        evaluate = eval(evaluate, term);
     }
 
-    Q_ASSERT(evaluationList.length() >= 1);
+    while (!evaluate.isNull() && evaluate->type() == Combinator::a_) {
+        A* a = static_cast<A*>(evaluate.data());
+        if (!a->isWellFormed()) { break; }
+            evaluate = a->apply();
+    }
 
-    CombinatorPtr evaluate = evaluationList.takeFirst();
+    Verbose::instance()->generateInputString(application);
     Verbose::instance()->generateReturnString(evaluate);
-    Verbose::instance()->generateInputString(evaluationList);
     Verbose::instance()->generateProgramEnd();
 }
 

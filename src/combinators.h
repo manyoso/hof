@@ -5,7 +5,6 @@
 
 class Combinator;
 typedef QSharedPointer<Combinator> CombinatorPtr;
-typedef QList<CombinatorPtr> EvaluationList;
 
 // singleton combinators
 CombinatorPtr i();

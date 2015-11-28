@@ -91,7 +91,7 @@ void Verbose::generateEvalString(const CombinatorPtr& term1, const CombinatorPtr
 
 void Verbose::generateReturnString(const CombinatorPtr& r)
 {
-    if (!isVerbose())
+    if (!isVerbose() || r.isNull())
         return;
 
     QString ret = r->toString();
@@ -109,19 +109,15 @@ void Verbose::generateReturnString(const CombinatorPtr& r)
     print();
 }
 
-void Verbose::generateInputString(const EvaluationList& list)
+void Verbose::generateInputString(const CombinatorPtr& input)
 {
-    if (!isVerbose() || list.isEmpty())
+    if (!isVerbose() || input.isNull())
         return;
 
     // Whatever is left in the evaluation list is input
     Verbose::instance()->generateProgramString("input", true /*replace*/);
-    EvaluationList::const_iterator it = list.begin();
     *m_stream << "  ";
-    for (; it != list.end(); ++it) {
-        CombinatorPtr next = *it;
-        *m_stream << next->toString();
-    }
+    *m_stream << input->toString();
     *m_stream << "\n";
     print();
 }

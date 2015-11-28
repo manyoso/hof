@@ -63,7 +63,7 @@ public:
     void generateOutputStringEnd();
     void generateEvalString(const CombinatorPtr& term1, const CombinatorPtr& term2, int evaluationDepth, bool cached);
     void generateReturnString(const CombinatorPtr& r);
-    void generateInputString(const EvaluationList& list);
+    void generateInputString(const CombinatorPtr& input);
     void generateReplacementString(const CombinatorPtr& term1, const CombinatorPtr& term2);
 
 private:
