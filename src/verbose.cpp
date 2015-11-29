@@ -1,14 +1,11 @@
 #include "verbose.h"
 #include "colors.h"
 
-void Verbose::generateProgramString(const QString& string, bool replace)
+void Verbose::generateProgramString(const QString& string)
 {
     if (!isVerbose())
         return;
-    if (replace)
-        m_program = string;
-    else
-        m_program += string;
+    m_program = string;
     *m_stream << PURPLE(m_format) << m_program << "\n" << RESET(m_format);
     print();
 }
@@ -99,7 +96,7 @@ void Verbose::generateReturnString(const CombinatorPtr& r)
         return;
 
     QString program = "return type: " + r->typeToString() + "";
-    Verbose::instance()->generateProgramString(program, true /*replace*/);
+    Verbose::instance()->generateProgramString(program);
 
     *m_stream << "  "
         << prefix()
@@ -115,7 +112,7 @@ void Verbose::generateInputString(const CombinatorPtr& input)
         return;
 
     // Whatever is left in the evaluation list is input
-    Verbose::instance()->generateProgramString("input", true /*replace*/);
+    Verbose::instance()->generateProgramString("input");
     *m_stream << "  ";
     *m_stream << input->toString();
     *m_stream << "\n";

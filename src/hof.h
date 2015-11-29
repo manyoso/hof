@@ -5,7 +5,7 @@
 
 class Hof {
 public:
-    Hof(QTextStream* outputStream, QTextStream* verboseStream = 0);
+    Hof(QTextStream* outputStream);
     ~Hof();
 
     void run(const QString& string);

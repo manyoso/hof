@@ -1,4 +1,5 @@
 #include "ski.h"
+#include "verbose.h"
 
 class SkiTerm {
 public:
@@ -79,6 +80,7 @@ private:
 
 QString Ski::fromSki(const QString& string, bool* ok)
 {
+    Verbose::instance()->generateProgramString("ski: " + string);
     bool isSub = false;
     QString sub = QString();
     SkiSubTerm* subTerm = 0;
@@ -114,6 +116,7 @@ QString Ski::fromSki(const QString& string, bool* ok)
           {
               term = new SkiTerm(sub);
               isSub = false;
+              sub = QString();
               break;
           }
         default: term = new SkiTerm(ch); break;

@@ -1,5 +1,6 @@
 #include "lambda.h"
 #include "ski.h"
+#include "verbose.h"
 
 #define LAMBDA 0x03BB
 #define DOT 0x002E
@@ -288,6 +289,8 @@ QString Lambda::fromLambda(const QString& string, bool* ok)
     bool isSub = false;
     QString sub = QString();
 
+    Verbose::instance()->generateProgramString("lambda: " + program);
+
     // Lexer
     QList<Token> tokens;
     for (int x = 0; x < program.length(); x++) {
@@ -303,6 +306,7 @@ QString Lambda::fromLambda(const QString& string, bool* ok)
           {
               tokens.append(Token(Token::Sub, sub));
               isSub = false;
+              sub = QString();
               continue;
           }
         default: t = Token::Variable; break;
@@ -325,16 +329,19 @@ QString Lambda::fromLambda(const QString& string, bool* ok)
         return error + errors.join("\n");
     }
 
-    QString out;
+    QString ski;
+    QString parsed;
     QList<LambdaTerm*> terms = parser.terms();
     foreach (LambdaTerm* term, terms) {
-        LambdaTerm* t = term->toSki();
-        out.append(t->toString());;
+        parsed.append(term->toString());
+        ski.append(term->toSki()->toString());
     }
 
-    out = out.simplified();
-    out.replace(" ", "");
-    return Ski::fromSki(out, ok);
+    Verbose::instance()->generateProgramString("parsed: " + parsed);
+
+    ski = ski.simplified();
+    ski.replace(" ", "");
+    return Ski::fromSki(ski, ok);
 }
 
 void LambdaParser::parse()

@@ -7,11 +7,11 @@
 
 void cppInterpreter(const QString& string)
 {
-    Verbose::instance()->generateProgramString("program: " + string);
-    Verbose::instance()->generateProgramString("begin", true /*replace*/);
+    Verbose::instance()->generateProgramString("hof: " + string);
+    Verbose::instance()->generateProgramString("begin");
 
     if (string.isEmpty()) {
-        Verbose::instance()->generateProgramString("end", true /*replace*/);
+        Verbose::instance()->generateProgramString("end");
         return;
     }
 
@@ -68,10 +68,9 @@ void cppInterpreter(const QString& string)
     Verbose::instance()->generateProgramEnd();
 }
 
-Hof::Hof(QTextStream* outputStream, QTextStream* verboseStream)
+Hof::Hof(QTextStream* outputStream)
 {
     static_cast<P*>(p().data())->setStream(outputStream);
-    Verbose::instance()->setStream(verboseStream);
 }
 
 Hof::~Hof()

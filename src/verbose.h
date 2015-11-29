@@ -57,7 +57,7 @@ public:
         m_postfix.removeAt(i);
     }
 
-    void generateProgramString(const QString& string, bool replace = false);
+    void generateProgramString(const QString& string);
     void generateProgramEnd();
     void generateOutputString();
     void generateOutputStringEnd();

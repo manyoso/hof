@@ -3,6 +3,7 @@
 #include "hof.h"
 #include "lambda.h"
 #include "ski.h"
+#include "verbose.h"
 
 int main(int argc, char** argv)
 {
@@ -66,6 +67,9 @@ int main(int argc, char** argv)
         program = parser.value(programOption);
     }
 
+    QTextStream verboseStream(stderr);
+    Verbose::instance()->setStream(isVerbose ? &verboseStream : 0);
+
     bool ok = true;
     if (isSki)
         program = Ski::fromSki(program, &ok);
@@ -96,8 +100,7 @@ int main(int argc, char** argv)
     program.replace(" ", "");
 
     QTextStream stream(stdout);
-    QTextStream verboseStream(stderr);
-    Hof hof(&stream, isVerbose ? &verboseStream : 0);
+    Hof hof(&stream);
     hof.run(program);
     if (!isVerbose) {
         stream << "\n";
