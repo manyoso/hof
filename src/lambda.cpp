@@ -277,7 +277,7 @@ QString makeSubstitutions(const QString& string)
     return programLines.join("\n");
 }
 
-QString Lambda::fromLambda(const QString& string)
+QString Lambda::fromLambda(const QString& string, bool* ok)
 {
     // Remove all whitespace
     QString program = makeSubstitutions(string);
@@ -318,8 +318,10 @@ QString Lambda::fromLambda(const QString& string)
     parser.parse();
 
     QStringList errors = parser.errors();
+    if (ok)
+        *ok = errors.isEmpty();
     if (!errors.isEmpty()) {
-        QString error = "Found errors while parsing: " + program;
+        QString error = "Found errors while parsing: " + program + "\n";
         return error + errors.join("\n");
     }
 
@@ -332,7 +334,7 @@ QString Lambda::fromLambda(const QString& string)
 
     out = out.simplified();
     out.replace(" ", "");
-    return Ski::fromSki(out);
+    return Ski::fromSki(out, ok);
 }
 
 void LambdaParser::parse()

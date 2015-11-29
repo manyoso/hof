@@ -66,10 +66,16 @@ int main(int argc, char** argv)
         program = parser.value(programOption);
     }
 
+    bool ok = true;
     if (isSki)
-        program = Ski::fromSki(program);
+        program = Ski::fromSki(program, &ok);
     else if (isLambda)
-        program = Lambda::fromLambda(program);
+        program = Lambda::fromLambda(program, &ok);
+
+    if (!ok) {
+        printf("%s\n", qPrintable(program));
+        return -1;
+    }
 
     if (isTranslate) {
         if (!isSki && !isLambda)

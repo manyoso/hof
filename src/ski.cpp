@@ -77,7 +77,7 @@ private:
     bool m_closed;
 };
 
-QString Ski::fromSki(const QString& string)
+QString Ski::fromSki(const QString& string, bool* ok)
 {
     bool isSub = false;
     QString sub = QString();
@@ -140,9 +140,11 @@ QString Ski::fromSki(const QString& string)
     }
     stream.flush();
 
+    if (ok)
+        *ok = error;
+
     if (error) {
         QString error = QString("Error: from ski to hof: program is not well formed! program=`%1`").arg(hof);
-        Q_ASSERT_X(false, "translate", qPrintable(error));
         return error;
     }
 

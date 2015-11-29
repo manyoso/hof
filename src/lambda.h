@@ -27,7 +27,7 @@ public:
      * Variables are restricted to single characters. Parenthesis is not
      * strictly required for lambda application.  Whitespace is ignored.
      */
-    static QString fromLambda(const QString& lambda);
+    static QString fromLambda(const QString& lambda, bool* ok = 0);
 };
 
 #endif // lambda_h

@@ -5,7 +5,7 @@
 
 class Ski {
 public:
-    static QString fromSki(const QString& ski);
+    static QString fromSki(const QString& ski, bool* ok = 0);
 };
 
 #endif // ski_h
