@@ -141,7 +141,7 @@ QString Ski::fromSki(const QString& string, bool* ok)
     stream.flush();
 
     if (ok)
-        *ok = error;
+        *ok = !error;
 
     if (error) {
         QString error = QString("Error: from ski to hof: program is not well formed! program=`%1`").arg(hof);
