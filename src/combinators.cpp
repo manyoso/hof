@@ -139,6 +139,7 @@ QString Combinator::toString() const
 
 QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) const
 {
+    QString argString = arg.isNull() ? RESET(f) : RED(f) + arg->toString() + RESET(f);
     switch(m_type) {
     case i_:
     case k_:
@@ -148,7 +149,7 @@ QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) cons
     case a_:
     case b_:
     case c_:
-        return GREEN(f) + toString() + RED(f) + arg->toString() + RESET(f);
+        return GREEN(f) + toString() + argString;
     case capture_:
       {
           const Capture* cap = static_cast<const Capture*>(this);
@@ -161,7 +162,7 @@ QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) cons
               s.insert(1, "₂");
           else
               s.insert(1, "₃");
-          return CYAN(f) + s + RED(f) + arg->toString() + RESET(f);
+          return CYAN(f) + s + argString;
       }
     default:
         Q_ASSERT(false);
@@ -297,15 +298,18 @@ CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
                     return aX->right;
                 }
 
+#if OPTIMIZATIONS
                 CombinatorPtr newC(new Capture(b(), 2));
                 newC.staticCast<Capture>()->args.append(aX->right);
                 newC.staticCast<Capture>()->args.append(y);
 
                 Verbose::instance()->generateReplacementString(capture, newC);
                 return newC;
+#endif
             }
         }
 
+#if OPTIMIZATIONS
         /* c optimization: SxAKy -> Cxy*/
         if (y->type() == Combinator::a_) {
             A* aY = static_cast<A*>(y.data());
@@ -318,6 +322,7 @@ CombinatorPtr S::apply(const CombinatorPtr& arg, CombinatorPtr capture) const
                 return newC;
             }
         }
+#endif
 
         return capture;
     }

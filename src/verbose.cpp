@@ -94,7 +94,7 @@ void Verbose::generateReturnString(const CombinatorPtr& r)
     if (!isVerbose() || r.isNull())
         return;
 
-    QString ret = r->toString();
+    QString ret = r->toStringApply(CombinatorPtr(), m_format);
     if (ret.isEmpty())
         return;
 

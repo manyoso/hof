@@ -3,6 +3,8 @@
 
 #include <QtCore>
 
+#define OPTIMIZATIONS 1
+
 class Combinator;
 typedef QSharedPointer<Combinator> CombinatorPtr;
 
