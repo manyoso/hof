@@ -27,7 +27,7 @@ enum OutputFormat {
 
 class Combinator {
 public:
-    enum Type { i_, k_, s_, p_, r_, a_, b_, c_, capture_ };
+    enum Type { i_, k_, s_, p_, r_, a_, b_, c_, capture_, var_ };
 
     Combinator() : m_type(Type(-1)) { }
     Combinator(Type t) : m_type(t) { }
@@ -111,6 +111,11 @@ struct B : Combinator {
 struct C : Combinator {
     C() : Combinator(Combinator::c_) { }
     CombinatorPtr apply(const CombinatorPtr& arg, CombinatorPtr cap = CombinatorPtr()) const;
+};
+
+struct Var : Combinator {
+    Var(QChar c) : Combinator(Combinator::var_), ch(c) { }
+    QChar ch;
 };
 
 class SubEval {

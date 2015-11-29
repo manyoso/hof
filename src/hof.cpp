@@ -27,10 +27,7 @@ void cppInterpreter(const QString& string)
         case 'P': term = p(); break;
         case 'R': term = r(); break;
         case 'A': term = CombinatorPtr(new A); break;
-        default:
-            QString error = QString("Error: invalid char in hof program! ch=`%1`").arg(ch);
-            Q_ASSERT_X(false, "hof", qPrintable(error));
-            return;
+        default: term = CombinatorPtr(new Var(ch)); break;
         }
 
         if (application.isNull() && term->type() == Combinator::a_) {

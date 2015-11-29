@@ -97,6 +97,8 @@ QString Combinator::typeToString() const
     case a_:  return QStringLiteral("A");
     case b_:  return QStringLiteral("B");
     case c_:  return QStringLiteral("C");
+    case var_:
+              return QStringLiteral("Var");
     case capture_:
               return QStringLiteral("Capture");
     default:
@@ -116,6 +118,11 @@ QString Combinator::toString() const
     case b_:
     case c_:
         return typeToString();
+    case var_:
+      {
+          const Var* v = static_cast<const Var*>(this);
+          return v->ch;
+      }
     case a_:
       {
           const A* a = static_cast<const A*>(this);
@@ -149,6 +156,7 @@ QString Combinator::toStringApply(const CombinatorPtr& arg, OutputFormat f) cons
     case a_:
     case b_:
     case c_:
+    case var_:
         return GREEN(f) + toString() + argString;
     case capture_:
       {
