@@ -115,6 +115,16 @@ QString runHof(const QString& program,
 // church comparison operators
 #define ISZERO(X) "AASAASIAKAKAKIAKK" X
 
+// church pairs and lists
+#define PAIR(X, Y) "AASAASAKSAASAKKAASAKSAASAKASIKAKK" X Y
+#define FIRST(X) "AASIAK" TRUE X
+#define SECOND(X) "AASIAK" FALSE X
+#define CONS PAIR
+#define HEAD FIRST
+#define TAIL SECOND
+#define NIL FALSE
+#define ISNIL ISZERO
+
 // recursion
 #define OMEGA "SIIAASII"
 
@@ -140,7 +150,7 @@ void TestHof::testPrint()
     QVERIFY(ok);
 }
 
-void TestHof::testLogic()
+void TestHof::testChurchLogic()
 {
     bool ok = false;
     QString out;
@@ -186,7 +196,7 @@ void TestHof::testLogic()
     QVERIFY(ok);
 }
 
-void TestHof::testChurch()
+void TestHof::testChurchNumerals()
 {
     bool ok = false;
     QString out;
@@ -224,7 +234,7 @@ void TestHof::testChurch()
     QVERIFY(ok);
 }
 
-void TestHof::testComparison()
+void TestHof::testChurchComparison()
 {
     bool ok = false;
     QString out;
@@ -235,6 +245,20 @@ void TestHof::testComparison()
     QVERIFY(ok);
 
     out = runHof(QString(IF(ISZERO(ONE), PTERM(I), PTERM(K))), &ok);
+    QCOMPARE(out, QString("K"));
+    QVERIFY(ok);
+}
+
+void TestHof::testChurchPairsAndLists()
+{
+    bool ok = false;
+    QString out;
+
+    out = runHof(QString(IF("A" ISNIL("A" FIRST("AA" CONS(NIL, ONE))), PTERM(I), PTERM(K))), &ok);
+    QCOMPARE(out, QString("I"));
+    QVERIFY(ok);
+
+    out = runHof(QString(IF("A" ISNIL("A" FIRST("AA" CONS(ONE, NIL))), PTERM(I), PTERM(K))), &ok);
     QCOMPARE(out, QString("K"));
     QVERIFY(ok);
 }

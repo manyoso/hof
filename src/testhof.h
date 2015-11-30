@@ -7,9 +7,10 @@ class TestHof: public QObject {
     Q_OBJECT
 private slots:
     void testPrint();
-    void testLogic();
-    void testChurch();
-    void testComparison();
+    void testChurchLogic();
+    void testChurchNumerals();
+    void testChurchComparison();
+    void testChurchPairsAndLists();
     void testRandom();
     void testY();
     void testYBenchmark();
