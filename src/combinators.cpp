@@ -38,6 +38,8 @@ CombinatorPtr eval(const CombinatorPtr& left, const CombinatorPtr& right)
         r = static_cast<const R*>(left.data())->apply(right); break;
     case Combinator::a_:
         r = static_cast<const A*>(left.data())->apply(right); break;
+    case Combinator::var_:
+        r = static_cast<const Var*>(left.data())->apply(right); break;
     case Combinator::capture_:
       {
           Capture* cap = static_cast<Capture*>(left.data());
@@ -514,6 +516,11 @@ void Capture::append(const CombinatorPtr& arg)
     Q_ASSERT(args.length() < argsToCapture);
     Q_ASSERT(arg.data() != this);
     args.append(arg);
+}
+
+CombinatorPtr Var::apply(const CombinatorPtr& x) const
+{
+    return x;
 }
 
 CombinatorPtr i()

@@ -86,7 +86,11 @@ void TestHof::testExamples()
     bool ok = false;
     QString out;
 
-    out = runHof("examples/iterate.lambda", TWO, &ok);
+    out = runHof("examples/decrement.lambda", TWO, &ok);
     QCOMPARE(out, QString("II"));
+    QVERIFY(ok);
+
+    out = runHof("examples/print-list.lambda", QString(), &ok);
+    QCOMPARE(out, QString("abcd"));
     QVERIFY(ok);
 }

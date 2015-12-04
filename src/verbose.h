@@ -67,16 +67,7 @@ public:
     void generateReplacementString(const CombinatorPtr& term1, const CombinatorPtr& term2);
 
 private:
-    Verbose()
-    {
-        m_stream = 0;
-        m_format = OutputFormat::Bash;
-        m_cacheHits = 0;
-        m_cacheMisses = 0;
-        m_depthAchieved = 0;
-        m_longestEvalLine = 0;
-    }
-
+    Verbose();
     QString m_program;
     QStringList m_prefix;
     QStringList m_postfix;

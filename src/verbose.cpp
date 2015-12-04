@@ -1,6 +1,16 @@
 #include "verbose.h"
 #include "colors.h"
 
+Verbose::Verbose()
+{
+    m_stream = 0;
+    m_format = OutputFormat::Bash;
+    m_cacheHits = 0;
+    m_cacheMisses = 0;
+    m_depthAchieved = 0;
+    m_longestEvalLine = 0;
+}
+
 void Verbose::generateProgramString(const QString& string)
 {
     if (!isVerbose())

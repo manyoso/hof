@@ -1,0 +1,27 @@
+zero = λf.λx.x
+one = λf.λx.f x
+two = λf.λx.f (f x)
+true = λx.λy.x
+false = λx.λy.y
+pair = λx.λy.λz.zxy
+first = λp.p(λx.λy.x)
+second = λp.p(λx.λy.y)
+
+cons = {pair}
+head = {first}
+tail = {second}
+nil = λx.λy.y
+isnil = λl.l (λh.λt.λd.λx.λy.y) λx.λy.x
+iszero = λn.n (λx.λx.λy.y) {true}
+y = λf.(λx.f (x x)) (λx.f (x x))
+
+little = (({cons}) ({APa}) ({APb}))
+
+medium = (({cons}) ({APa}) (({cons}) ({APb}) ({APc})))
+
+big = (({cons}) ({APa}) (({cons}) ({APb}) (({cons}) ({APc}) ({APd}))))
+
+({y})(λi.
+         λx.
+            (({head}) x) (i (({tail}) x))
+     ) ({big})

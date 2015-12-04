@@ -14,9 +14,7 @@ isEmpty(OUTPUT_DIR):OUTPUT_DIR=$$PWD/build
 QT += core
 QT -= gui
 
-CONFIG += qt warn_on
-
-QMAKE_CXXFLAGS += -std=c++1y
+CONFIG += qt warn_on c++11
 
 DEBUG_MODE = $$(DEBUG_MODE)
 contains(DEBUG_MODE, 1) {

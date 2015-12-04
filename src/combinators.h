@@ -115,6 +115,7 @@ struct C : Combinator {
 
 struct Var : Combinator {
     Var(QChar c) : Combinator(Combinator::var_), ch(c) { }
+    CombinatorPtr apply(const CombinatorPtr& x) const;
     QChar ch;
 };
 
